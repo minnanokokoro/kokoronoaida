@@ -1,6 +1,7 @@
 import streamlit as st
-import google.generativeai as genai
+from groq import Groq
 import json
+import re
 from datetime import datetime
 
 # --- ページ設定 ---
@@ -13,13 +14,11 @@ st.markdown("""
     .stButton>button { border-radius: 20px; background-color: #4A4A4A; color: white; }
     .post-card { background-color: white; padding: 20px; border-radius: 15px; border: 1px solid #E0E0E0; margin-bottom: 15px; }
     </style>
-    """, unsafe_allow_html=True) # ← ここを修正しました！
+    """, unsafe_allow_html=True)
 
 # --- API設定 ---
-if "GOOGLE_API_KEY" in st.secrets:
-    genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
-else:
-    st.warning("APIキーが設定されていません。アプリを動かすにはSecretsに GOOGLE_API_KEY を設定してください。")
+if "GROQ_API_KEY" not in st.secrets:
+    st.warning("APIキーが設定されていません。アプリを動かすにはSecretsに GROQ_API_KEY を設定してください。")
 
 # --- データ管理 ---
 if "posts" not in st.session_state:
@@ -38,30 +37,44 @@ if "posts" not in st.session_state:
 
 # --- 関数: AI分析 ---
 def analyze_post(post):
-    # モデルを指定（2026年現在の最新推奨モデルを使用）
-    model = genai.GenerativeModel('gemini-2.0-flash-lite')
-    
+    client = Groq(api_key=st.secrets["GROQ_API_KEY"])
+
     prompt = f"""
-    以下の親子関係の悩みを分析し、日本語のJSON形式で出力してください。
+    以下の親子関係の悩みを分析し、日本語のJSON形式のみで出力してください。
+    前置きや説明文は一切不要です。JSONだけを返してください。
+
     立場: {post['position']}
     テーマ: {post['theme']}
     内容: {post['whatHappened']}
     感情: {post['howFelt']}
 
-    出力項目（日本語で回答すること）:
-    1. overview (この投稿の整理)
-    2. hidden_feelings (表面には見えない奥にある気持ち)
-    3. parent_perspective (親の立場から見た視点とアドバイス)
-    4. child_perspective (子の立場から見た視点とアドバイス)
-    5. actionable_hints (関係を少しよくするためのヒント、3つのリスト)
+    以下のキーを持つJSONを返してください（日本語で回答）:
+    {{
+      "overview": "この投稿の整理",
+      "hidden_feelings": "表面には見えない奥にある気持ち",
+      "parent_perspective": "親の立場から見た視点とアドバイス",
+      "child_perspective": "子の立場から見た視点とアドバイス",
+      "actionable_hints": ["ヒント1", "ヒント2", "ヒント3"]
+    }}
     """
-    
+
     try:
-        response = model.generate_content(
-            prompt,
-            generation_config={"response_mime_type": "application/json"}
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {
+                    "role": "system",
+                    "content": "あなたは親子関係の悩みに寄り添うカウンセラーです。必ずJSON形式のみで回答してください。"
+                },
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+            response_format={"type": "json_object"}
         )
-        return json.loads(response.text)
+        text = response.choices[0].message.content
+        return json.loads(text)
     except Exception as e:
         return {"error": str(e)}
 
@@ -73,7 +86,7 @@ if "view" not in st.session_state:
 if st.session_state.view == "home":
     st.title("🧡 こころのあいだ")
     st.caption("こころのあいだを、ことばにする。")
-    
+
     if st.button("＋ こころを書き出す"):
         st.session_state.view = "create"
         st.rerun()
@@ -102,7 +115,7 @@ elif st.session_state.view == "create":
         theme = st.selectbox("テーマ", ["親子関係", "子育て", "受験・進路"])
         happened = st.text_area("何がありましたか？（事実）")
         felt = st.text_area("どう感じましたか？（感情）")
-        
+
         submitted = st.form_submit_button("静かに投稿する")
         if submitted:
             new_post = {
@@ -117,7 +130,7 @@ elif st.session_state.view == "create":
             st.session_state.posts.insert(0, new_post)
             st.session_state.view = "home"
             st.rerun()
-    
+
     if st.button("キャンセルして戻る"):
         st.session_state.view = "home"
         st.rerun()
@@ -128,15 +141,15 @@ elif st.session_state.view == "detail":
     if st.button("← 一覧へ戻る"):
         st.session_state.view = "home"
         st.rerun()
-    
+
     st.markdown(f"## {post['title']}")
     st.info(f"**立場:** {post['position']} / **テーマ:** {post['theme']}")
     st.write(f"**【何があったか】**\n{post['whatHappened']}")
     st.write(f"**【どう感じたか】**\n{post['howFelt']}")
-    
+
     st.write("---")
     if st.button("✨ AIと見つめ直す"):
-        if "GOOGLE_API_KEY" not in st.secrets:
+        if "GROQ_API_KEY" not in st.secrets:
             st.error("APIキーが設定されていないため、AI機能を使えません。")
         else:
             with st.spinner("言葉を紡いでいます..."):
@@ -147,13 +160,13 @@ elif st.session_state.view == "detail":
                     st.success("分析が完了しました")
                     st.markdown(f"### 🔍 投稿の整理\n{result.get('overview', '')}")
                     st.markdown(f"### 🧡 見えてくる気持ち\n{result.get('hidden_feelings', '')}")
-                    
+
                     col1, col2 = st.columns(2)
                     with col1:
                         st.info(f"**親の視点から**\n\n{result.get('parent_perspective', '')}")
                     with col2:
                         st.success(f"**子の視点から**\n\n{result.get('child_perspective', '')}")
-                    
+
                     st.warning("### 💡 関係をよくするヒント")
                     for hint in result.get('actionable_hints', []):
                         st.write(f"- {hint}")
