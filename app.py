@@ -39,7 +39,7 @@ if "posts" not in st.session_state:
 # --- 関数: AI分析 ---
 def analyze_post(post):
     # モデルを指定（2026年現在の最新推奨モデルを使用）
-    model = genai.GenerativeModel('gemini-3.1-flash')
+    model = genai.GenerativeModel('gemini-2.0-flash')
     
     prompt = f"""
     以下の親子関係の悩みを分析し、日本語のJSON形式で出力してください。
