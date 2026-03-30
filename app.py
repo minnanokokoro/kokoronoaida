@@ -1,6 +1,8 @@
 import streamlit as st
 from groq import Groq
+from supabase import create_client
 import json
+import uuid
 from datetime import datetime
 
 # --- ページ設定 ---
@@ -172,34 +174,97 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 # --- テーマアイコン ---
-THEME_ICONS = {
-    "親子関係": "💬",
-    "子育て": "🌱",
-    "受験・進路": "📖"
-}
+THEME_ICONS = {"親子関係": "💬", "子育て": "🌱", "受験・進路": "📖"}
 
-# --- API設定 ---
-if "GROQ_API_KEY" not in st.secrets:
-    st.warning("APIキーが設定されていません。SecretsにGROQ_API_KEYを設定してください。")
+# --- Supabase設定 ---
+@st.cache_resource
+def get_supabase():
+    return create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
 
-# --- データ管理 ---
-if "posts" not in st.session_state:
-    st.session_state.posts = [
-        {
-            "id": "1",
-            "title": "進路について言い合ってしまった",
-            "author": "",
-            "isAnonymous": False,
-            "position": "子ども",
-            "theme": "受験・進路",
-            "whatHappened": "美大に行きたいと伝えたら否定された。就職はどうするの？と聞かれて悲しかった。",
-            "howFelt": "自分の夢を否定されたように感じて、とても悲しかったです。",
-            "reallyWanted": "ただ、応援してほしかった。",
-            "hardestMoment": "「そんな夢みたいなこと」と言われた瞬間。",
-            "tags": ["理解されない", "期待"],
-            "createdAt": "2026-03-27"
-        }
-    ]
+# --- 端末ID生成 ---
+if "device_id" not in st.session_state:
+    st.session_state.device_id = str(uuid.uuid4())
+
+# --- 投稿の読み込み ---
+def load_posts():
+    try:
+        supabase = get_supabase()
+        res = supabase.table("posts").select("*").order("created_at", desc=True).execute()
+        posts = []
+        for p in res.data:
+            posts.append({
+                "id": p["id"],
+                "title": p["title"] or "名もなき感情",
+                "author": p["author"] or "",
+                "isAnonymous": p["is_anonymous"],
+                "position": p["position"],
+                "theme": p["theme"],
+                "whatHappened": p["what_happened"],
+                "howFelt": p["how_felt"],
+                "reallyWanted": p["really_wanted"] or "",
+                "hardestMoment": p["hardest_moment"] or "",
+                "tags": p["tags"] or [],
+                "createdAt": str(p["created_at"]),
+                "device_id": p["device_id"]
+            })
+        return posts
+    except Exception as e:
+        st.error(f"データの読み込みに失敗しました: {e}")
+        return []
+
+# --- 投稿の保存 ---
+def save_post(post):
+    try:
+        supabase = get_supabase()
+        supabase.table("posts").insert({
+            "id": post["id"],
+            "device_id": post["device_id"],
+            "title": post["title"],
+            "author": post["author"],
+            "is_anonymous": post["isAnonymous"],
+            "position": post["position"],
+            "theme": post["theme"],
+            "what_happened": post["whatHappened"],
+            "how_felt": post["howFelt"],
+            "really_wanted": post["reallyWanted"],
+            "hardest_moment": post["hardestMoment"],
+            "tags": post["tags"],
+            "created_at": post["createdAt"]
+        }).execute()
+        return True
+    except Exception as e:
+        st.error(f"保存に失敗しました: {e}")
+        return False
+
+# --- 投稿の更新 ---
+def update_post(post):
+    try:
+        supabase = get_supabase()
+        supabase.table("posts").update({
+            "title": post["title"],
+            "author": post["author"],
+            "is_anonymous": post["isAnonymous"],
+            "position": post["position"],
+            "theme": post["theme"],
+            "what_happened": post["whatHappened"],
+            "how_felt": post["howFelt"],
+            "really_wanted": post["reallyWanted"],
+            "hardest_moment": post["hardestMoment"],
+        }).eq("id", post["id"]).execute()
+        return True
+    except Exception as e:
+        st.error(f"更新に失敗しました: {e}")
+        return False
+
+# --- 投稿の削除 ---
+def delete_post(post_id):
+    try:
+        supabase = get_supabase()
+        supabase.table("posts").delete().eq("id", post_id).execute()
+        return True
+    except Exception as e:
+        st.error(f"削除に失敗しました: {e}")
+        return False
 
 # --- 関数: AI分析 ---
 def analyze_post(post):
@@ -218,7 +283,7 @@ def analyze_post(post):
     以下のキーを持つJSONを返してください（日本語で回答）:
     {{
       "overview": "この投稿の整理",
-      "hidden_feelings": "表面には見えない奥にある気持ち（「本当はどうしてほしかったか」「一番つらかった瞬間」もふまえて深く分析する）",
+      "hidden_feelings": "表面には見えない奥にある気持ち",
       "parent_perspective": "親の立場から見た視点とアドバイス",
       "child_perspective": "子の立場から見た視点とアドバイス",
       "actionable_hints": ["ヒント1", "ヒント2", "ヒント3"]
@@ -237,32 +302,26 @@ def analyze_post(post):
     except Exception as e:
         return {"error": str(e)}
 
-# --- 関数: AIチャット返答 ---
+# --- 関数: AIチャット ---
 def chat_with_ai(post, analysis, chat_history, user_message):
     client = Groq(api_key=st.secrets["GROQ_API_KEY"])
     system_prompt = f"""
 あなたは親子関係の悩みに深く寄り添う、温かいカウンセラーです。
-以下の3つの役割を大切にしてください：
+1. 【具体的なアドバイス】実際に使える言葉や行動を提案する
+2. 【次のアクションを一緒に考える】「次に何ができそうか」を一緒に考える
+3. 【相手の気持ちを代弁する】親/子どもの立場から気持ちを言語化する
 
-1. 【具体的なアドバイス】 抽象的な言葉ではなく、実際に使える言葉や行動を提案する
-2. 【次のアクションを一緒に考える】 「次に何ができそうか」を相手と一緒に考える姿勢を持つ
-3. 【相手の気持ちを代弁する】 親/子どもの立場から見た気持ちを丁寧に言語化して伝える
+立場: {post['position']} / テーマ: {post['theme']}
+何があったか: {post['whatHappened']}
+どう感じたか: {post['howFelt']}
+本当はどうしてほしかったか: {post.get('reallyWanted', '')}
+一番つらかった瞬間: {post.get('hardestMoment', '')}
 
-【この投稿の背景情報】
-- 立場: {post['position']}
-- テーマ: {post['theme']}
-- 何があったか: {post['whatHappened']}
-- どう感じたか: {post['howFelt']}
-- 本当はどうしてほしかったか: {post.get('reallyWanted', '未回答')}
-- 一番つらかった瞬間: {post.get('hardestMoment', '未回答')}
-
-【すでに行ったAI分析の結果】
+分析結果:
 - 整理: {analysis.get('overview', '')}
 - 隠れた気持ち: {analysis.get('hidden_feelings', '')}
-- 親の視点: {analysis.get('parent_perspective', '')}
-- 子の視点: {analysis.get('child_perspective', '')}
 
-返答は200〜300文字程度の自然な日本語で、押しつけがましくなく、温かいトーンで。
+返答は200〜300文字程度の自然な日本語で、温かいトーンで。
 """
     messages = [{"role": "system", "content": system_prompt}]
     for msg in chat_history:
@@ -278,7 +337,7 @@ def chat_with_ai(post, analysis, chat_history, user_message):
     except Exception as e:
         return f"エラーが発生しました: {str(e)}"
 
-# --- カードのHTML生成 ---
+# --- カードHTML生成 ---
 def render_post_card(post):
     icon = THEME_ICONS.get(post['theme'], '📝')
     tags_html = ''.join([f'<span class="tag-pill">#{t}</span>' for t in post.get('tags', [])])
@@ -288,14 +347,8 @@ def render_post_card(post):
     preview = post['whatHappened'][:45] + '...' if len(post['whatHappened']) > 45 else post['whatHappened']
     return f"""
     <div class="post-card">
-        <div class="post-card-title">
-            {post['title']}{anon_badge}{author_text}{position_badge}
-        </div>
-        <div class="post-card-meta">
-            <span>{icon} {post['theme']}</span>
-            &nbsp;·&nbsp;
-            <span>{post['createdAt']}</span>
-        </div>
+        <div class="post-card-title">{post['title']}{anon_badge}{author_text}{position_badge}</div>
+        <div class="post-card-meta"><span>{icon} {post['theme']}</span> &nbsp;·&nbsp; <span>{post['createdAt']}</span></div>
         <div class="post-card-body">{preview}</div>
         {f'<div style="margin-bottom:10px;">{tags_html}</div>' if tags_html else ''}
     </div>
@@ -309,32 +362,17 @@ if "view" not in st.session_state:
 # 画面: ホーム
 # =============================
 if st.session_state.view == "home":
-
-    # ロゴ＋タイトル
     try:
         col_logo, col_title = st.columns([1, 4])
         with col_logo:
-            st.markdown("""
-                <style>
-                [data-testid="stImage"] img {
-                    background-color: #FAF7F2 !important;
-                    border-radius: 12px;
-                }
-                </style>
-            """, unsafe_allow_html=True)
+            st.markdown("""<style>[data-testid="stImage"] img { background-color: #FAF7F2 !important; border-radius: 12px; }</style>""", unsafe_allow_html=True)
             st.image("images/logo.png", width=100)
         with col_title:
-            st.markdown("""
-                <div style="display:flex; flex-direction:column; justify-content:flex-end; height:100%; padding-left:4px; margin-top:38px;">
-                    <div class="app-title">こころのあいだ</div>
-                    <div class="app-caption">こころのあいだを、ことばにする。</div>
-                </div>
-            """, unsafe_allow_html=True)
+            st.markdown(f"""<div style="display:flex; flex-direction:column; justify-content:flex-end; height:100%; padding-left:4px; margin-top:38px;"><div class="app-title">こころのあいだ</div><div class="app-caption">こころのあいだを、ことばにする。</div></div>""", unsafe_allow_html=True)
     except:
         st.markdown('<div class="app-title">🧡 こころのあいだ</div>', unsafe_allow_html=True)
         st.markdown('<div class="app-caption">こころのあいだを、ことばにする。</div>', unsafe_allow_html=True)
 
-    # コンセプト・使い方
     st.markdown("""
     <div class="concept-card">
         <div class="concept-title">このアプリについて</div>
@@ -345,18 +383,9 @@ if st.session_state.view == "home":
         </div>
         <div style="border-top:1px dashed #E8D0BC; margin-bottom:12px;"></div>
         <div style="font-size:12px; color:#9C7B6A; font-weight:500; margin-bottom:10px;">使い方</div>
-        <div class="step-row">
-            <div class="step-num">1</div>
-            <div class="step-text">「こころを書き出す」から、あったことと気持ちを書く</div>
-        </div>
-        <div class="step-row">
-            <div class="step-num">2</div>
-            <div class="step-text">「AIと見つめ直す」で気持ちを深く分析してもらう</div>
-        </div>
-        <div class="step-row">
-            <div class="step-num">3</div>
-            <div class="step-text">AIとチャットして、次の一歩を一緒に考える</div>
-        </div>
+        <div class="step-row"><div class="step-num">1</div><div class="step-text">「こころを書き出す」から、あったことと気持ちを書く</div></div>
+        <div class="step-row"><div class="step-num">2</div><div class="step-text">「AIと見つめ直す」で気持ちを深く分析してもらう</div></div>
+        <div class="step-row"><div class="step-num">3</div><div class="step-text">AIとチャットして、次の一歩を一緒に考える</div></div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -376,13 +405,20 @@ if st.session_state.view == "home":
     </div>
     """, unsafe_allow_html=True)
 
-    if st.button("＋ こころを書き出す"):
-        st.session_state.view = "create"
-        st.rerun()
+    col_nav1, col_nav2 = st.columns([1, 1])
+    with col_nav1:
+        if st.button("＋ こころを書き出す", use_container_width=True):
+            st.session_state.view = "create"
+            st.rerun()
+    with col_nav2:
+        if st.button("👤 マイページ", use_container_width=True):
+            st.session_state.view = "mypage"
+            st.rerun()
 
     st.markdown('<hr class="divider">', unsafe_allow_html=True)
 
-    for post in st.session_state.posts:
+    posts = load_posts()
+    for post in posts:
         st.markdown(render_post_card(post), unsafe_allow_html=True)
         col1, col2, col3 = st.columns([3, 1, 1])
         with col1:
@@ -429,13 +465,13 @@ elif st.session_state.view == "create":
         felt = st.text_area("どう感じましたか？（感情）", placeholder="そのとき、どんな気持ちになりましたか？")
         st.markdown('<hr class="divider">', unsafe_allow_html=True)
         st.caption("もう少し深く教えてください（任意）")
-        really_wanted = st.text_area("本当はどうしてほしかったですか？", placeholder="例：ただ話を聞いてほしかった、認めてほしかった…")
-        hardest_moment = st.text_area("一番つらかった瞬間はどこですか？", placeholder="例：○○と言われたとき、無視されたとき…")
+        really_wanted = st.text_area("本当はどうしてほしかったですか？", placeholder="例：ただ話を聞いてほしかった…")
+        hardest_moment = st.text_area("一番つらかった瞬間はどこですか？", placeholder="例：○○と言われたとき…")
 
         submitted = st.form_submit_button("静かに投稿する")
         if submitted:
             new_post = {
-                "id": str(datetime.now().timestamp()),
+                "id": str(uuid.uuid4()),
                 "title": title if title else "名もなき感情",
                 "author": author,
                 "isAnonymous": is_anonymous,
@@ -446,11 +482,12 @@ elif st.session_state.view == "create":
                 "reallyWanted": really_wanted,
                 "hardestMoment": hardest_moment,
                 "tags": [],
-                "createdAt": str(datetime.now().date())
+                "createdAt": str(datetime.now().date()),
+                "device_id": st.session_state.device_id
             }
-            st.session_state.posts.insert(0, new_post)
-            st.session_state.view = "home"
-            st.rerun()
+            if save_post(new_post):
+                st.session_state.view = "home"
+                st.rerun()
 
     if st.button("← キャンセルして戻る"):
         st.session_state.view = "home"
@@ -474,10 +511,8 @@ elif st.session_state.view == "edit":
             st.write("")
             is_anonymous = st.checkbox("匿名にする", value=post.get('isAnonymous', False))
         st.markdown('<hr class="divider">', unsafe_allow_html=True)
-        position = st.selectbox("あなたの立場", ["親", "子ども"],
-            index=["親", "子ども"].index(post['position']))
-        theme = st.selectbox("テーマ", ["親子関係", "子育て", "受験・進路"],
-            index=["親子関係", "子育て", "受験・進路"].index(post['theme']))
+        position = st.selectbox("あなたの立場", ["親", "子ども"], index=["親", "子ども"].index(post['position']))
+        theme = st.selectbox("テーマ", ["親子関係", "子育て", "受験・進路"], index=["親子関係", "子育て", "受験・進路"].index(post['theme']))
         st.markdown('<hr class="divider">', unsafe_allow_html=True)
         happened = st.text_area("何がありましたか？（事実）", value=post['whatHappened'])
         felt = st.text_area("どう感じましたか？（感情）", value=post['howFelt'])
@@ -488,24 +523,11 @@ elif st.session_state.view == "edit":
 
         submitted = st.form_submit_button("保存する")
         if submitted:
-            for i, p in enumerate(st.session_state.posts):
-                if p['id'] == post['id']:
-                    st.session_state.posts[i] = {
-                        **p,
-                        "title": title if title else "名もなき感情",
-                        "author": author,
-                        "isAnonymous": is_anonymous,
-                        "position": position,
-                        "theme": theme,
-                        "whatHappened": happened,
-                        "howFelt": felt,
-                        "reallyWanted": really_wanted,
-                        "hardestMoment": hardest_moment,
-                    }
-                    break
-            st.success("保存しました！")
-            st.session_state.view = "home"
-            st.rerun()
+            updated = {**post, "title": title if title else "名もなき感情", "author": author, "isAnonymous": is_anonymous, "position": position, "theme": theme, "whatHappened": happened, "howFelt": felt, "reallyWanted": really_wanted, "hardestMoment": hardest_moment}
+            if update_post(updated):
+                st.success("保存しました！")
+                st.session_state.view = "home"
+                st.rerun()
 
     if st.button("← キャンセルして戻る"):
         st.session_state.view = "home"
@@ -516,7 +538,8 @@ elif st.session_state.view == "edit":
 # =============================
 elif st.session_state.view == "confirm_delete":
     target_id = st.session_state.get("delete_target_id")
-    target_post = next((p for p in st.session_state.posts if p['id'] == target_id), None)
+    posts = load_posts()
+    target_post = next((p for p in posts if p['id'] == target_id), None)
 
     st.markdown('<div class="section-header">🗑️ 投稿を削除しますか？</div>', unsafe_allow_html=True)
     if target_post:
@@ -525,13 +548,52 @@ elif st.session_state.view == "confirm_delete":
     col1, col2 = st.columns(2)
     with col1:
         if st.button("削除する", type="primary"):
-            st.session_state.posts = [p for p in st.session_state.posts if p['id'] != target_id]
-            st.session_state.view = "home"
-            st.rerun()
+            if delete_post(target_id):
+                st.session_state.view = "home"
+                st.rerun()
     with col2:
         if st.button("キャンセル"):
             st.session_state.view = "home"
             st.rerun()
+
+# =============================
+# 画面: マイページ
+# =============================
+elif st.session_state.view == "mypage":
+    if st.button("← ホームへ戻る"):
+        st.session_state.view = "home"
+        st.rerun()
+
+    st.markdown('<div class="section-header">👤 マイページ</div>', unsafe_allow_html=True)
+    st.caption("この端末から投稿した記録です。")
+
+    all_posts = load_posts()
+    my_posts = [p for p in all_posts if p.get("device_id") == st.session_state.device_id]
+
+    if not my_posts:
+        st.markdown("""<div style="background:#FFFDF8; border:1.5px solid #E8D8C4; border-radius:14px; padding:24px; text-align:center; color:#9C7B6A; font-size:14px; line-height:1.8;">まだ投稿がありません。<br>「こころを書き出す」から最初の一歩を。</div>""", unsafe_allow_html=True)
+    else:
+        st.markdown(f'<div style="font-size:13px; color:#9C7B6A; margin-bottom:12px;">投稿数：{len(my_posts)}件</div>', unsafe_allow_html=True)
+        for post in my_posts:
+            st.markdown(render_post_card(post), unsafe_allow_html=True)
+            col1, col2, col3 = st.columns([3, 1, 1])
+            with col1:
+                if st.button("✨ AI分析を見る", key=f"my_detail_{post['id']}"):
+                    st.session_state.selected_post = post
+                    st.session_state.analysis_result = None
+                    st.session_state.chat_history = []
+                    st.session_state.view = "detail"
+                    st.rerun()
+            with col2:
+                if st.button("✏️ 編集", key=f"my_edit_{post['id']}"):
+                    st.session_state.selected_post = post
+                    st.session_state.view = "edit"
+                    st.rerun()
+            with col3:
+                if st.button("🗑️ 削除", key=f"my_delete_{post['id']}"):
+                    st.session_state.delete_target_id = post['id']
+                    st.session_state.view = "confirm_delete"
+                    st.rerun()
 
 # =============================
 # 画面: 詳細・分析・チャット
@@ -563,7 +625,6 @@ elif st.session_state.view == "detail":
 
     st.markdown(f'<div style="background:#FFFDF8;border:1.5px solid #E8D8C4;border-left:4px solid #E8A87C;border-radius:12px;padding:16px;margin-bottom:10px;"><div style="font-size:12px;color:#9C7B6A;margin-bottom:4px;">何があったか</div><div style="font-size:14px;color:#3D2B1F;line-height:1.7;">{post["whatHappened"]}</div></div>', unsafe_allow_html=True)
     st.markdown(f'<div style="background:#FFFDF8;border:1.5px solid #E8D8C4;border-left:4px solid #C4A882;border-radius:12px;padding:16px;margin-bottom:10px;"><div style="font-size:12px;color:#9C7B6A;margin-bottom:4px;">どう感じたか</div><div style="font-size:14px;color:#3D2B1F;line-height:1.7;">{post["howFelt"]}</div></div>', unsafe_allow_html=True)
-
     if post.get('reallyWanted'):
         st.markdown(f'<div style="background:#FFFDF8;border:1.5px solid #E8D8C4;border-left:4px solid #D9B8A0;border-radius:12px;padding:16px;margin-bottom:10px;"><div style="font-size:12px;color:#9C7B6A;margin-bottom:4px;">本当はどうしてほしかったか</div><div style="font-size:14px;color:#3D2B1F;line-height:1.7;">{post["reallyWanted"]}</div></div>', unsafe_allow_html=True)
     if post.get('hardestMoment'):
@@ -578,24 +639,17 @@ elif st.session_state.view == "detail":
 
     if st.session_state.analysis_result is None:
         if st.button("✨ AIと見つめ直す"):
-            if "GROQ_API_KEY" not in st.secrets:
-                st.error("APIキーが設定されていないため、AI機能を使えません。")
-            else:
-                with st.spinner("言葉を紡いでいます..."):
-                    result = analyze_post(post)
-                    if "error" in result:
-                        st.error(f"分析に失敗しました: {result['error']}")
-                    else:
-                        st.session_state.analysis_result = result
-                        st.session_state.chat_history = [{
-                            "role": "assistant",
-                            "content": "分析が終わりました。気になること、もっと深めたいこと、何でも話しかけてみてください。一緒に考えます🧡"
-                        }]
-                        st.rerun()
+            with st.spinner("言葉を紡いでいます..."):
+                result = analyze_post(post)
+                if "error" in result:
+                    st.error(f"分析に失敗しました: {result['error']}")
+                else:
+                    st.session_state.analysis_result = result
+                    st.session_state.chat_history = [{"role": "assistant", "content": "分析が終わりました。気になること、もっと深めたいこと、何でも話しかけてみてください。一緒に考えます🧡"}]
+                    st.rerun()
 
     if st.session_state.analysis_result:
         result = st.session_state.analysis_result
-
         st.markdown(f'<div style="background:#FFFDF8;border:1.5px solid #E8D8C4;border-radius:12px;padding:16px;margin-bottom:10px;"><div style="font-size:13px;font-weight:500;color:#3D2B1F;margin-bottom:6px;">🔍 投稿の整理</div><div style="font-size:14px;color:#4A2C1A;line-height:1.7;">{result.get("overview","")}</div></div>', unsafe_allow_html=True)
         st.markdown(f'<div style="background:#FFF5EE;border:1.5px solid #F0CDB0;border-radius:12px;padding:16px;margin-bottom:10px;"><div style="font-size:13px;font-weight:500;color:#3D2B1F;margin-bottom:6px;">🧡 見えてくる気持ち</div><div style="font-size:14px;color:#4A2C1A;line-height:1.7;">{result.get("hidden_feelings","")}</div></div>', unsafe_allow_html=True)
 
