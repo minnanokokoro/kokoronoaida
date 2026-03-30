@@ -181,9 +181,60 @@ THEME_ICONS = {"親子関係": "💬", "子育て": "🌱", "受験・進路": "
 def get_supabase():
     return create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
 
-# --- 端末ID生成 ---
+# --- 端末ID生成（LocalStorageで永続化） ---
 if "device_id" not in st.session_state:
     st.session_state.device_id = str(uuid.uuid4())
+
+device_id_js = f"""
+<script>
+(function() {{
+    let id = localStorage.getItem('kokoro_device_id');
+    if (!id) {{
+        id = '{st.session_state.device_id}';
+        localStorage.setItem('kokoro_device_id', id);
+    }}
+    // Streamlitにデバイスカスタムイベントは送れないので、hiddenフィールドで渡す
+    const el = window.parent.document.querySelector('input[data-device-id]');
+    if (!el) {{
+        const inp = window.parent.document.createElement('input');
+        inp.setAttribute('data-device-id', id);
+        inp.type = 'hidden';
+        window.parent.document.body.appendChild(inp);
+    }}
+    // セッションストレージにも保存
+    sessionStorage.setItem('kokoro_device_id', id);
+}})();
+</script>
+"""
+
+import streamlit.components.v1 as components
+
+if "device_id_loaded" not in st.session_state:
+    stored_id = st.query_params.get("did", None)
+    if stored_id:
+        st.session_state.device_id = stored_id
+        st.session_state.device_id_loaded = True
+    else:
+        st.session_state.device_id_loaded = False
+
+components.html(f"""
+<script>
+(function() {{
+    let id = localStorage.getItem('kokoro_device_id');
+    if (!id) {{
+        id = '{st.session_state.device_id}';
+        localStorage.setItem('kokoro_device_id', id);
+    }}
+    const current = new URLSearchParams(window.parent.location.search).get('did');
+    if (current !== id) {{
+        const url = new URL(window.parent.location.href);
+        url.searchParams.set('did', id);
+        window.parent.history.replaceState(null, '', url.toString());
+        window.parent.location.reload();
+    }}
+}})();
+</script>
+""", height=0)
 
 # --- 投稿の読み込み ---
 def load_posts():
