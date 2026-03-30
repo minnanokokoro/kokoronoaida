@@ -311,10 +311,10 @@ if "view" not in st.session_state:
 if st.session_state.view == "home":
 
     # ロゴ＋タイトル
-    col_logo, col_title = st.columns([1, 3])
+    col_logo, col_title = st.columns([1, 5])
     with col_logo:
         try:
-            st.image("images/logo.png", width=90)
+            st.image("images/logo.png", width=52)
         except:
             st.markdown("🧡", unsafe_allow_html=True)
     with col_title:
