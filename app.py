@@ -360,6 +360,22 @@ if st.session_state.view == "home":
     </div>
     """, unsafe_allow_html=True)
 
+    st.markdown("""
+    <div class="concept-card" style="border-left: 4px solid #E8A87C;">
+        <div class="concept-title">✍️ 書くことで、こころが動く</div>
+        <div class="concept-body">
+            感情的になっているとき、悩みが頭の中でぐるぐると大きくなっているとき——<br>
+            そんなとき、気持ちをことばにして書き出すことには、不思議な力があります。<br><br>
+            頭の中だけにある思いは、どんどん膨らんで主観的になりがちです。<br>
+            でも、ことばとして外に出した瞬間、自分の気持ちを少し離れたところから見られるようになります。<br><br>
+            「あ、自分はこんなふうに感じていたんだ」<br>
+            「相手はもしかしたら、こういう気持ちだったのかもしれない」<br><br>
+            書くことは、こころに客観性をそっと届けてくれます。<br>
+            まずは、思いつくままに書き出してみてください。
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
     if st.button("＋ こころを書き出す"):
         st.session_state.view = "create"
         st.rerun()
