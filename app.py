@@ -13,6 +13,7 @@ st.markdown("""
     .post-card { background-color: white; padding: 20px; border-radius: 15px; border: 1px solid #E0E0E0; margin-bottom: 15px; }
     .chat-user { background-color: #F0F0F0; padding: 12px 16px; border-radius: 15px 15px 4px 15px; margin: 8px 0; text-align: right; }
     .chat-ai { background-color: #FFF3E8; padding: 12px 16px; border-radius: 15px 15px 15px 4px; margin: 8px 0; border-left: 3px solid #FFA07A; }
+    .anon-badge { display: inline-block; background-color: #F0F0F0; color: #888; font-size: 0.75em; padding: 2px 10px; border-radius: 20px; margin-left: 6px; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -26,6 +27,8 @@ if "posts" not in st.session_state:
         {
             "id": "1",
             "title": "進路について言い合ってしまった",
+            "author": "Sachi",
+            "isAnonymous": False,
             "position": "子ども",
             "theme": "受験・進路",
             "whatHappened": "美大に行きたいと伝えたら否定された。就職はどうするの？と聞かれて悲しかった。",
@@ -116,6 +119,13 @@ def chat_with_ai(post, analysis, chat_history, user_message):
     except Exception as e:
         return f"エラーが発生しました: {str(e)}"
 
+# --- 投稿者名の表示 ---
+def display_author(post):
+    if post.get('isAnonymous'):
+        return '<span class="anon-badge">匿名</span>'
+    author = post.get('author', '')
+    return f'<span style="font-size:0.85em; color:#888;">{author}</span>' if author else ''
+
 # --- 画面遷移制御 ---
 if "view" not in st.session_state:
     st.session_state.view = "home"
@@ -134,9 +144,10 @@ if st.session_state.view == "home":
     st.write("---")
     for post in st.session_state.posts:
         with st.container():
+            author_html = display_author(post)
             st.markdown(f"""
             <div class="post-card">
-                <h3 style="margin-top:0;">{post['title']}</h3>
+                <h3 style="margin-top:0;">{post['title']} {author_html}</h3>
                 <p style="color:gray; font-size:0.9em;">{post['position']} | {post['theme']} | {post['createdAt']}</p>
                 <p>{post['whatHappened'][:50]}...</p>
             </div>
@@ -170,6 +181,18 @@ elif st.session_state.view == "create":
 
     with st.form("post_form"):
         title = st.text_input("タイトル（任意）")
+
+        # 匿名モード設定
+        st.write("---")
+        col_name, col_anon = st.columns([3, 1])
+        with col_name:
+            author = st.text_input("お名前（任意）", placeholder="例：Sachi")
+        with col_anon:
+            st.write("")
+            st.write("")
+            is_anonymous = st.checkbox("匿名にする")
+
+        st.write("---")
         position = st.selectbox("あなたの立場", ["親", "子ども"])
         theme = st.selectbox("テーマ", ["親子関係", "子育て", "受験・進路"])
 
@@ -193,6 +216,8 @@ elif st.session_state.view == "create":
             new_post = {
                 "id": str(datetime.now().timestamp()),
                 "title": title if title else "名もなき感情",
+                "author": author,
+                "isAnonymous": is_anonymous,
                 "position": position,
                 "theme": theme,
                 "whatHappened": happened,
@@ -218,6 +243,17 @@ elif st.session_state.view == "edit":
 
     with st.form("edit_form"):
         title = st.text_input("タイトル", value=post['title'])
+
+        st.write("---")
+        col_name, col_anon = st.columns([3, 1])
+        with col_name:
+            author = st.text_input("お名前（任意）", value=post.get('author', ''))
+        with col_anon:
+            st.write("")
+            st.write("")
+            is_anonymous = st.checkbox("匿名にする", value=post.get('isAnonymous', False))
+
+        st.write("---")
         position = st.selectbox(
             "あなたの立場", ["親", "子ども"],
             index=["親", "子ども"].index(post['position'])
@@ -243,6 +279,8 @@ elif st.session_state.view == "edit":
                     st.session_state.posts[i] = {
                         **p,
                         "title": title if title else "名もなき感情",
+                        "author": author,
+                        "isAnonymous": is_anonymous,
                         "position": position,
                         "theme": theme,
                         "whatHappened": happened,
@@ -302,11 +340,11 @@ elif st.session_state.view == "detail":
             st.session_state.view = "confirm_delete"
             st.rerun()
 
-    st.markdown(f"## {post['title']}")
+    author_html = display_author(post)
+    st.markdown(f"## {post['title']} {author_html}", unsafe_allow_html=True)
     st.info(f"**立場:** {post['position']} / **テーマ:** {post['theme']}")
     st.write(f"**【何があったか】**\n{post['whatHappened']}")
     st.write(f"**【どう感じたか】**\n{post['howFelt']}")
-
     if post.get('reallyWanted'):
         st.write(f"**【本当はどうしてほしかったか】**\n{post['reallyWanted']}")
     if post.get('hardestMoment'):
