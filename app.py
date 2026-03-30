@@ -311,14 +311,27 @@ if "view" not in st.session_state:
 if st.session_state.view == "home":
 
     # ロゴ＋タイトル
-    col_logo, col_title = st.columns([1, 5])
-    with col_logo:
-        try:
-            st.image("images/logo.png", width=52)
-        except:
-            st.markdown("🧡", unsafe_allow_html=True)
-    with col_title:
-        st.markdown('<div class="app-title">こころのあいだ</div>', unsafe_allow_html=True)
+    try:
+        col_logo, col_title = st.columns([1, 4])
+        with col_logo:
+            st.markdown("""
+                <style>
+                [data-testid="stImage"] img {
+                    background-color: #FAF7F2 !important;
+                    border-radius: 12px;
+                }
+                </style>
+            """, unsafe_allow_html=True)
+            st.image("images/logo.png", width=100)
+        with col_title:
+            st.markdown("""
+                <div style="display:flex; flex-direction:column; justify-content:center; height:100%; padding-left:4px; margin-top:8px;">
+                    <div class="app-title">こころのあいだ</div>
+                    <div class="app-caption">こころのあいだを、ことばにする。</div>
+                </div>
+            """, unsafe_allow_html=True)
+    except:
+        st.markdown('<div class="app-title">🧡 こころのあいだ</div>', unsafe_allow_html=True)
         st.markdown('<div class="app-caption">こころのあいだを、ことばにする。</div>', unsafe_allow_html=True)
 
     # コンセプト・使い方
