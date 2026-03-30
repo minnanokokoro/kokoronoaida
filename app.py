@@ -13,6 +13,7 @@ st.markdown("""
     .post-card { background-color: white; padding: 20px; border-radius: 15px; border: 1px solid #E0E0E0; margin-bottom: 15px; }
     .chat-user { background-color: #F0F0F0; padding: 12px 16px; border-radius: 15px 15px 4px 15px; margin: 8px 0; text-align: right; }
     .chat-ai { background-color: #FFF3E8; padding: 12px 16px; border-radius: 15px 15px 15px 4px; margin: 8px 0; border-left: 3px solid #FFA07A; }
+    .delete-btn > button { background-color: #e57373 !important; color: white !important; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -72,7 +73,6 @@ def analyze_post(post):
 # --- 関数: AIチャット返答 ---
 def chat_with_ai(post, analysis, chat_history, user_message):
     client = Groq(api_key=st.secrets["GROQ_API_KEY"])
-
     system_prompt = f"""
 あなたは親子関係の悩みに深く寄り添う、温かいカウンセラーです。
 以下の3つの役割を大切にしてください：
@@ -96,7 +96,6 @@ def chat_with_ai(post, analysis, chat_history, user_message):
 この背景をふまえて、ユーザーの言葉に丁寧に応答してください。
 返答は200〜300文字程度の自然な日本語で、押しつけがましくなく、温かいトーンで。
 """
-
     messages = [{"role": "system", "content": system_prompt}]
     for msg in chat_history:
         messages.append({"role": msg["role"], "content": msg["content"]})
@@ -116,7 +115,9 @@ def chat_with_ai(post, analysis, chat_history, user_message):
 if "view" not in st.session_state:
     st.session_state.view = "home"
 
-# --- 画面: ホーム ---
+# =============================
+# 画面: ホーム
+# =============================
 if st.session_state.view == "home":
     st.title("🧡 こころのあいだ")
     st.caption("こころのあいだを、ことばにする。")
@@ -131,18 +132,33 @@ if st.session_state.view == "home":
             st.markdown(f"""
             <div class="post-card">
                 <h3 style="margin-top:0;">{post['title']}</h3>
-                <p style="color:gray; font-size:0.9em;">{post['position']} | {post['theme']}</p>
+                <p style="color:gray; font-size:0.9em;">{post['position']} | {post['theme']} | {post['createdAt']}</p>
                 <p>{post['whatHappened'][:50]}...</p>
             </div>
             """, unsafe_allow_html=True)
-            if st.button("詳細・AI分析を見る", key=post['id']):
-                st.session_state.selected_post = post
-                st.session_state.analysis_result = None
-                st.session_state.chat_history = []
-                st.session_state.view = "detail"
-                st.rerun()
 
-# --- 画面: 新規投稿 ---
+            col1, col2, col3 = st.columns([3, 1, 1])
+            with col1:
+                if st.button("詳細・AI分析を見る", key=f"detail_{post['id']}"):
+                    st.session_state.selected_post = post
+                    st.session_state.analysis_result = None
+                    st.session_state.chat_history = []
+                    st.session_state.view = "detail"
+                    st.rerun()
+            with col2:
+                if st.button("✏️ 編集", key=f"edit_{post['id']}"):
+                    st.session_state.selected_post = post
+                    st.session_state.view = "edit"
+                    st.rerun()
+            with col3:
+                if st.button("🗑️ 削除", key=f"delete_{post['id']}"):
+                    st.session_state.delete_target_id = post['id']
+                    st.session_state.view = "confirm_delete"
+                    st.rerun()
+
+# =============================
+# 画面: 新規投稿
+# =============================
 elif st.session_state.view == "create":
     st.header("こころを書き出す")
     with st.form("post_form"):
@@ -171,13 +187,91 @@ elif st.session_state.view == "create":
         st.session_state.view = "home"
         st.rerun()
 
-# --- 画面: 詳細・分析・チャット ---
+# =============================
+# 画面: 編集
+# =============================
+elif st.session_state.view == "edit":
+    post = st.session_state.selected_post
+    st.header("✏️ 投稿を編集する")
+
+    with st.form("edit_form"):
+        title = st.text_input("タイトル", value=post['title'])
+        position = st.selectbox(
+            "あなたの立場",
+            ["親", "子ども"],
+            index=["親", "子ども"].index(post['position'])
+        )
+        theme = st.selectbox(
+            "テーマ",
+            ["親子関係", "子育て", "受験・進路"],
+            index=["親子関係", "子育て", "受験・進路"].index(post['theme'])
+        )
+        happened = st.text_area("何がありましたか？（事実）", value=post['whatHappened'])
+        felt = st.text_area("どう感じましたか？（感情）", value=post['howFelt'])
+
+        submitted = st.form_submit_button("保存する")
+        if submitted:
+            for i, p in enumerate(st.session_state.posts):
+                if p['id'] == post['id']:
+                    st.session_state.posts[i] = {
+                        **p,
+                        "title": title if title else "名もなき感情",
+                        "position": position,
+                        "theme": theme,
+                        "whatHappened": happened,
+                        "howFelt": felt,
+                    }
+                    break
+            st.success("保存しました！")
+            st.session_state.view = "home"
+            st.rerun()
+
+    if st.button("キャンセルして戻る"):
+        st.session_state.view = "home"
+        st.rerun()
+
+# =============================
+# 画面: 削除確認
+# =============================
+elif st.session_state.view == "confirm_delete":
+    target_id = st.session_state.get("delete_target_id")
+    target_post = next((p for p in st.session_state.posts if p['id'] == target_id), None)
+
+    st.header("🗑️ 投稿を削除しますか？")
+    if target_post:
+        st.warning(f"「{target_post['title']}」を削除します。この操作は元に戻せません。")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("削除する", type="primary"):
+            st.session_state.posts = [p for p in st.session_state.posts if p['id'] != target_id]
+            st.session_state.view = "home"
+            st.rerun()
+    with col2:
+        if st.button("キャンセル"):
+            st.session_state.view = "home"
+            st.rerun()
+
+# =============================
+# 画面: 詳細・分析・チャット
+# =============================
 elif st.session_state.view == "detail":
     post = st.session_state.selected_post
 
-    if st.button("← 一覧へ戻る"):
-        st.session_state.view = "home"
-        st.rerun()
+    col_back, col_edit, col_delete = st.columns([3, 1, 1])
+    with col_back:
+        if st.button("← 一覧へ戻る"):
+            st.session_state.view = "home"
+            st.rerun()
+    with col_edit:
+        if st.button("✏️ 編集"):
+            st.session_state.view = "edit"
+            st.rerun()
+    with col_delete:
+        if st.button("🗑️ 削除"):
+            st.session_state.delete_target_id = post['id']
+            st.session_state.view = "confirm_delete"
+            st.rerun()
 
     st.markdown(f"## {post['title']}")
     st.info(f"**立場:** {post['position']} / **テーマ:** {post['theme']}")
@@ -186,7 +280,6 @@ elif st.session_state.view == "detail":
 
     st.write("---")
 
-    # --- AI分析セクション ---
     if "analysis_result" not in st.session_state:
         st.session_state.analysis_result = None
     if "chat_history" not in st.session_state:
@@ -203,14 +296,12 @@ elif st.session_state.view == "detail":
                         st.error(f"分析に失敗しました: {result['error']}")
                     else:
                         st.session_state.analysis_result = result
-                        # 最初のAIメッセージをチャット履歴に追加
                         st.session_state.chat_history = [{
                             "role": "assistant",
                             "content": "分析が終わりました。気になること、もっと深めたいこと、何でも話しかけてみてください。一緒に考えます🧡"
                         }]
                         st.rerun()
 
-    # --- 分析結果の表示 ---
     if st.session_state.analysis_result:
         result = st.session_state.analysis_result
 
@@ -228,23 +319,19 @@ elif st.session_state.view == "detail":
         for hint in result.get('actionable_hints', []):
             st.write(f"- {hint}")
 
-        # --- チャットセクション ---
         st.write("---")
         st.markdown("### 💬 AIとさらに話してみる")
         st.caption("気持ちを深堀りしたり、具体的なアドバイスを聞いたり、自由に話しかけてください。")
 
-        # チャット履歴の表示
         for msg in st.session_state.chat_history:
             if msg["role"] == "assistant":
                 st.markdown(f'<div class="chat-ai">🧡 {msg["content"]}</div>', unsafe_allow_html=True)
             else:
                 st.markdown(f'<div class="chat-user">{msg["content"]}</div>', unsafe_allow_html=True)
 
-        # 入力フォーム
         with st.form("chat_form", clear_on_submit=True):
             user_input = st.text_input("メッセージを入力...", placeholder="例：相手にどう伝えればいいですか？")
             send = st.form_submit_button("送る")
-
             if send and user_input.strip():
                 with st.spinner("考えています..."):
                     ai_response = chat_with_ai(
