@@ -26,25 +26,67 @@ st.markdown("""
         color: #4A2C1A;
         border: none;
     }
-
     .app-title {
         font-family: 'Noto Serif JP', Georgia, serif;
-        font-size: 28px;
+        font-size: 26px;
         font-weight: 500;
         color: #3D2B1F;
+        margin-bottom: 2px;
     }
     .app-caption {
         font-size: 13px;
         color: #9C7B6A;
-        margin-top: -8px;
-        margin-bottom: 16px;
+        margin-bottom: 0px;
     }
     .divider {
         border: none;
         border-top: 1px dashed #D9C4B0;
         margin: 16px 0;
     }
-
+    .concept-card {
+        background-color: #FFFDF8;
+        border: 1.5px solid #E8D8C4;
+        border-radius: 14px;
+        padding: 18px 20px;
+        margin: 12px 0 16px 0;
+    }
+    .concept-title {
+        font-family: 'Noto Serif JP', Georgia, serif;
+        font-size: 14px;
+        font-weight: 500;
+        color: #3D2B1F;
+        margin-bottom: 10px;
+    }
+    .concept-body {
+        font-size: 13px;
+        color: #6B5043;
+        line-height: 1.85;
+        margin-bottom: 14px;
+    }
+    .step-row {
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+        margin-bottom: 8px;
+    }
+    .step-num {
+        min-width: 22px;
+        height: 22px;
+        background: #E8A87C;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        color: #4A2C1A;
+        font-weight: 500;
+    }
+    .step-text {
+        font-size: 13px;
+        color: #6B5043;
+        line-height: 1.6;
+        padding-top: 2px;
+    }
     .post-card {
         background-color: #FFFDF8;
         border: 1.5px solid #E8D8C4;
@@ -126,7 +168,6 @@ st.markdown("""
         color: #4A2C1A;
         font-size: 14px;
     }
-    .theme-icon { margin-right: 4px; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -245,7 +286,6 @@ def render_post_card(post):
     author_text = f'<span style="font-size:12px;color:#9C7B6A;margin-left:4px;">{post.get("author","")}</span>' if post.get("author") and not post.get("isAnonymous") else ''
     position_badge = f'<span class="badge-position">{post["position"]}</span>'
     preview = post['whatHappened'][:45] + '...' if len(post['whatHappened']) > 45 else post['whatHappened']
-
     return f"""
     <div class="post-card">
         <div class="post-card-title">
@@ -269,8 +309,43 @@ if "view" not in st.session_state:
 # 画面: ホーム
 # =============================
 if st.session_state.view == "home":
-    st.markdown('<div class="app-title">🧡 こころのあいだ</div>', unsafe_allow_html=True)
-    st.markdown('<div class="app-caption">こころのあいだを、ことばにする。</div>', unsafe_allow_html=True)
+
+    # ロゴ＋タイトル
+    col_logo, col_title = st.columns([1, 3])
+    with col_logo:
+        try:
+            st.image("images/logo.png", width=90)
+        except:
+            st.markdown("🧡", unsafe_allow_html=True)
+    with col_title:
+        st.markdown('<div class="app-title">こころのあいだ</div>', unsafe_allow_html=True)
+        st.markdown('<div class="app-caption">こころのあいだを、ことばにする。</div>', unsafe_allow_html=True)
+
+    # コンセプト・使い方
+    st.markdown("""
+    <div class="concept-card">
+        <div class="concept-title">このアプリについて</div>
+        <div class="concept-body">
+            親子のすれ違い、うまく言葉にできない気持ち——<br>
+            そんなこころのあいだを、ここで書き出してみてください。<br>
+            AIがあなたの言葉を丁寧に受け取り、隠れた気持ちや相手の視点を一緒に探します。
+        </div>
+        <div style="border-top:1px dashed #E8D0BC; margin-bottom:12px;"></div>
+        <div style="font-size:12px; color:#9C7B6A; font-weight:500; margin-bottom:10px;">使い方</div>
+        <div class="step-row">
+            <div class="step-num">1</div>
+            <div class="step-text">「こころを書き出す」から、あったことと気持ちを書く</div>
+        </div>
+        <div class="step-row">
+            <div class="step-num">2</div>
+            <div class="step-text">「AIと見つめ直す」で気持ちを深く分析してもらう</div>
+        </div>
+        <div class="step-row">
+            <div class="step-num">3</div>
+            <div class="step-text">AIとチャットして、次の一歩を一緒に考える</div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
     if st.button("＋ こころを書き出す"):
         st.session_state.view = "create"
@@ -309,7 +384,6 @@ elif st.session_state.view == "create":
 
     with st.form("post_form"):
         title = st.text_input("タイトル（任意）")
-
         st.markdown('<hr class="divider">', unsafe_allow_html=True)
         col_name, col_anon = st.columns([3, 1])
         with col_name:
@@ -318,15 +392,12 @@ elif st.session_state.view == "create":
             st.write("")
             st.write("")
             is_anonymous = st.checkbox("匿名にする")
-
         st.markdown('<hr class="divider">', unsafe_allow_html=True)
         position = st.selectbox("あなたの立場", ["親", "子ども"])
         theme = st.selectbox("テーマ", ["親子関係", "子育て", "受験・進路"])
-
         st.markdown('<hr class="divider">', unsafe_allow_html=True)
         happened = st.text_area("何がありましたか？（事実）", placeholder="どんなことが起きたか、できるだけ具体的に。")
         felt = st.text_area("どう感じましたか？（感情）", placeholder="そのとき、どんな気持ちになりましたか？")
-
         st.markdown('<hr class="divider">', unsafe_allow_html=True)
         st.caption("もう少し深く教えてください（任意）")
         really_wanted = st.text_area("本当はどうしてほしかったですか？", placeholder="例：ただ話を聞いてほしかった、認めてほしかった…")
@@ -365,7 +436,6 @@ elif st.session_state.view == "edit":
 
     with st.form("edit_form"):
         title = st.text_input("タイトル", value=post['title'])
-
         st.markdown('<hr class="divider">', unsafe_allow_html=True)
         col_name, col_anon = st.columns([3, 1])
         with col_name:
@@ -374,17 +444,14 @@ elif st.session_state.view == "edit":
             st.write("")
             st.write("")
             is_anonymous = st.checkbox("匿名にする", value=post.get('isAnonymous', False))
-
         st.markdown('<hr class="divider">', unsafe_allow_html=True)
         position = st.selectbox("あなたの立場", ["親", "子ども"],
             index=["親", "子ども"].index(post['position']))
         theme = st.selectbox("テーマ", ["親子関係", "子育て", "受験・進路"],
             index=["親子関係", "子育て", "受験・進路"].index(post['theme']))
-
         st.markdown('<hr class="divider">', unsafe_allow_html=True)
         happened = st.text_area("何がありましたか？（事実）", value=post['whatHappened'])
         felt = st.text_area("どう感じましたか？（感情）", value=post['howFelt'])
-
         st.markdown('<hr class="divider">', unsafe_allow_html=True)
         st.caption("もう少し深く教えてください（任意）")
         really_wanted = st.text_area("本当はどうしてほしかったですか？", value=post.get('reallyWanted', ''))
