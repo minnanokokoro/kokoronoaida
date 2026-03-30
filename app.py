@@ -13,7 +13,6 @@ st.markdown("""
     .post-card { background-color: white; padding: 20px; border-radius: 15px; border: 1px solid #E0E0E0; margin-bottom: 15px; }
     .chat-user { background-color: #F0F0F0; padding: 12px 16px; border-radius: 15px 15px 4px 15px; margin: 8px 0; text-align: right; }
     .chat-ai { background-color: #FFF3E8; padding: 12px 16px; border-radius: 15px 15px 15px 4px; margin: 8px 0; border-left: 3px solid #FFA07A; }
-    .delete-btn > button { background-color: #e57373 !important; color: white !important; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -31,6 +30,8 @@ if "posts" not in st.session_state:
             "theme": "受験・進路",
             "whatHappened": "美大に行きたいと伝えたら否定された。就職はどうするの？と聞かれて悲しかった。",
             "howFelt": "自分の夢を否定されたように感じて、とても悲しかったです。",
+            "reallyWanted": "ただ、応援してほしかった。",
+            "hardestMoment": "「そんな夢みたいなこと」と言われた瞬間。",
             "tags": ["理解されない", "期待"],
             "createdAt": "2026-03-27"
         }
@@ -47,11 +48,13 @@ def analyze_post(post):
     テーマ: {post['theme']}
     内容: {post['whatHappened']}
     感情: {post['howFelt']}
+    本当はどうしてほしかったか: {post.get('reallyWanted', '未回答')}
+    一番つらかった瞬間: {post.get('hardestMoment', '未回答')}
 
     以下のキーを持つJSONを返してください（日本語で回答）:
     {{
       "overview": "この投稿の整理",
-      "hidden_feelings": "表面には見えない奥にある気持ち",
+      "hidden_feelings": "表面には見えない奥にある気持ち（「本当はどうしてほしかったか」「一番つらかった瞬間」もふまえて深く分析する）",
       "parent_perspective": "親の立場から見た視点とアドバイス",
       "child_perspective": "子の立場から見た視点とアドバイス",
       "actionable_hints": ["ヒント1", "ヒント2", "ヒント3"]
@@ -86,6 +89,8 @@ def chat_with_ai(post, analysis, chat_history, user_message):
 - テーマ: {post['theme']}
 - 何があったか: {post['whatHappened']}
 - どう感じたか: {post['howFelt']}
+- 本当はどうしてほしかったか: {post.get('reallyWanted', '未回答')}
+- 一番つらかった瞬間: {post.get('hardestMoment', '未回答')}
 
 【すでに行ったAI分析の結果】
 - 整理: {analysis.get('overview', '')}
@@ -161,12 +166,27 @@ if st.session_state.view == "home":
 # =============================
 elif st.session_state.view == "create":
     st.header("こころを書き出す")
+    st.caption("思いつくままに、ゆっくり書いてみてください。")
+
     with st.form("post_form"):
         title = st.text_input("タイトル（任意）")
         position = st.selectbox("あなたの立場", ["親", "子ども"])
         theme = st.selectbox("テーマ", ["親子関係", "子育て", "受験・進路"])
-        happened = st.text_area("何がありましたか？（事実）")
-        felt = st.text_area("どう感じましたか？（感情）")
+
+        st.write("---")
+        happened = st.text_area("何がありましたか？（事実）", placeholder="どんなことが起きたか、できるだけ具体的に。")
+        felt = st.text_area("どう感じましたか？（感情）", placeholder="そのとき、どんな気持ちになりましたか？")
+
+        st.write("---")
+        st.caption("もう少し深く教えてください（任意）")
+        really_wanted = st.text_area(
+            "本当はどうしてほしかったですか？",
+            placeholder="例：ただ話を聞いてほしかった、認めてほしかった…"
+        )
+        hardest_moment = st.text_area(
+            "一番つらかった瞬間はどこですか？",
+            placeholder="例：○○と言われたとき、無視されたとき…"
+        )
 
         submitted = st.form_submit_button("静かに投稿する")
         if submitted:
@@ -177,6 +197,8 @@ elif st.session_state.view == "create":
                 "theme": theme,
                 "whatHappened": happened,
                 "howFelt": felt,
+                "reallyWanted": really_wanted,
+                "hardestMoment": hardest_moment,
                 "createdAt": str(datetime.now().date())
             }
             st.session_state.posts.insert(0, new_post)
@@ -197,17 +219,22 @@ elif st.session_state.view == "edit":
     with st.form("edit_form"):
         title = st.text_input("タイトル", value=post['title'])
         position = st.selectbox(
-            "あなたの立場",
-            ["親", "子ども"],
+            "あなたの立場", ["親", "子ども"],
             index=["親", "子ども"].index(post['position'])
         )
         theme = st.selectbox(
-            "テーマ",
-            ["親子関係", "子育て", "受験・進路"],
+            "テーマ", ["親子関係", "子育て", "受験・進路"],
             index=["親子関係", "子育て", "受験・進路"].index(post['theme'])
         )
+
+        st.write("---")
         happened = st.text_area("何がありましたか？（事実）", value=post['whatHappened'])
         felt = st.text_area("どう感じましたか？（感情）", value=post['howFelt'])
+
+        st.write("---")
+        st.caption("もう少し深く教えてください（任意）")
+        really_wanted = st.text_area("本当はどうしてほしかったですか？", value=post.get('reallyWanted', ''))
+        hardest_moment = st.text_area("一番つらかった瞬間はどこですか？", value=post.get('hardestMoment', ''))
 
         submitted = st.form_submit_button("保存する")
         if submitted:
@@ -220,6 +247,8 @@ elif st.session_state.view == "edit":
                         "theme": theme,
                         "whatHappened": happened,
                         "howFelt": felt,
+                        "reallyWanted": really_wanted,
+                        "hardestMoment": hardest_moment,
                     }
                     break
             st.success("保存しました！")
@@ -277,6 +306,11 @@ elif st.session_state.view == "detail":
     st.info(f"**立場:** {post['position']} / **テーマ:** {post['theme']}")
     st.write(f"**【何があったか】**\n{post['whatHappened']}")
     st.write(f"**【どう感じたか】**\n{post['howFelt']}")
+
+    if post.get('reallyWanted'):
+        st.write(f"**【本当はどうしてほしかったか】**\n{post['reallyWanted']}")
+    if post.get('hardestMoment'):
+        st.write(f"**【一番つらかった瞬間】**\n{post['hardestMoment']}")
 
     st.write("---")
 
