@@ -325,7 +325,7 @@ if st.session_state.view == "home":
             st.image("images/logo.png", width=100)
         with col_title:
             st.markdown("""
-                <div style="display:flex; flex-direction:column; justify-content:flex-end; height:100%; padding-left:4px; margin-top:48px;">
+                <div style="display:flex; flex-direction:column; justify-content:flex-end; height:100%; padding-left:4px; margin-top:28px;">
                     <div class="app-title">こころのあいだ</div>
                     <div class="app-caption">こころのあいだを、ことばにする。</div>
                 </div>
