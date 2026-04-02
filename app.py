@@ -364,6 +364,42 @@ def render_post_card(post):
     </div>
     """
 
+# --- パスワード認証 ---
+def check_password():
+    if st.session_state.get("authenticated"):
+        return True
+
+    st.markdown("""
+    <div style="max-width:380px; margin:80px auto 0 auto;">
+        <div style="text-align:center; margin-bottom:32px;">
+    """, unsafe_allow_html=True)
+
+    try:
+        st.image("images/logo.png", width=90)
+    except:
+        pass
+
+    st.markdown("""
+        <div style="font-family:Georgia,serif;font-size:24px;font-weight:500;color:#3D2B1F;margin-top:12px;">こころのあいだ</div>
+        <div style="font-size:13px;color:#9C7B6A;margin-top:4px;margin-bottom:32px;">こころのあいだを、ことばにする。</div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    with st.form("login_form"):
+        password = st.text_input("パスワード", type="password", placeholder="パスワードを入力してください")
+        submitted = st.form_submit_button("ログイン", use_container_width=True)
+        if submitted:
+            if password == st.secrets.get("APP_PASSWORD", ""):
+                st.session_state.authenticated = True
+                st.rerun()
+            else:
+                st.error("パスワードが違います")
+    return False
+
+if not check_password():
+    st.stop()
+
 # --- サイドバーメニュー ---
 with st.sidebar:
     try:
