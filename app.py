@@ -416,14 +416,14 @@ with st.sidebar:
     st.markdown('<div style="font-size:11px;color:#9C7B6A;margin-bottom:16px;">こころのあいだを、ことばにする。</div>', unsafe_allow_html=True)
     st.markdown('<hr style="border:none;border-top:1px dashed #D9C4B0;margin:8px 0 16px 0;">', unsafe_allow_html=True)
     menu_items = [
-        ("🏠", "ホーム", "home"),
-        ("📖", "はじめに", "about"),
-        ("📋", "使い方ガイド", "guide"),
-        ("🔒", "プライバシーについて", "privacy"),
-        ("❓", "よくある質問", "faq"),
+        ("ホーム", "home"),
+        ("はじめに", "about"),
+        ("使い方ガイド", "guide"),
+        ("プライバシーについて", "privacy"),
+        ("よくある質問", "faq"),
     ]
-    for icon, label, view_name in menu_items:
-        if st.button(f"{icon} {label}", key=f"menu_{view_name}", use_container_width=True):
+    for label, view_name in menu_items:
+        if st.button(label, key=f"menu_{view_name}", use_container_width=True):
             st.session_state.view = view_name
             st.rerun()
 
@@ -605,38 +605,6 @@ elif st.session_state.view == "home":
     except:
         st.markdown('<div class="app-title">🧡 こころのあいだ</div>', unsafe_allow_html=True)
         st.markdown('<div class="app-caption">こころのあいだを、ことばにする。</div>', unsafe_allow_html=True)
-
-    st.markdown("""
-    <div class="concept-card">
-        <div class="concept-title">このアプリについて</div>
-        <div class="concept-body">
-            親子のすれ違い、うまく言葉にできない気持ち——<br>
-            そんなこころのあいだを、ここで書き出してみてください。<br>
-            AIがあなたの言葉を丁寧に受け取り、隠れた気持ちや相手の視点を一緒に探します。
-        </div>
-        <div style="border-top:1px dashed #E8D0BC; margin-bottom:12px;"></div>
-        <div style="font-size:12px; color:#9C7B6A; font-weight:500; margin-bottom:10px;">使い方</div>
-        <div class="step-row"><div class="step-num">1</div><div class="step-text">「こころを書き出す」から、あったことと気持ちを書く</div></div>
-        <div class="step-row"><div class="step-num">2</div><div class="step-text">「AIと見つめ直す」で気持ちを深く分析してもらう</div></div>
-        <div class="step-row"><div class="step-num">3</div><div class="step-text">AIとチャットして、次の一歩を一緒に考える</div></div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    st.markdown("""
-    <div class="concept-card" style="border-left: 4px solid #E8A87C;">
-        <div class="concept-title">✍️ 書くことで、こころが動く</div>
-        <div class="concept-body">
-            感情的になっているとき、悩みが頭の中でぐるぐると大きくなっているとき——<br>
-            そんなとき、気持ちをことばにして書き出すことには、不思議な力があります。<br><br>
-            頭の中だけにある思いは、どんどん膨らんで主観的になりがちです。<br>
-            でも、ことばとして外に出した瞬間、自分の気持ちを少し離れたところから見られるようになります。<br><br>
-            「あ、自分はこんなふうに感じていたんだ」<br>
-            「相手はもしかしたら、こういう気持ちだったのかもしれない」<br><br>
-            書くことは、こころに客観性をそっと届けてくれます。<br>
-            まずは、思いつくままに書き出してみてください。
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
 
     col_nav1, col_nav2 = st.columns([1, 1])
     with col_nav1:
