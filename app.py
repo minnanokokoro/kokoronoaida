@@ -466,6 +466,21 @@ if st.session_state.view == "about":
             AIはカウンセラーではありません。でも、ひとりで抱えていた気持ちを整理する手助けはできます。
         </div>
     </div>
+    <div class="concept-card" style="border-left:4px solid #C4A882;">
+        <div class="concept-title">他の人の投稿を読むということ</div>
+        <div class="concept-body">
+            このアプリでは、他の人の投稿もトップページに表示されます。<br>
+            それには理由があります。<br><br>
+            <strong style="color:#3D2B1F;">「自分だけじゃない」と気づける</strong><br>
+            似たような悩みを抱えている人がいると知るだけで、こころが少し軽くなることがあります。<br><br>
+            <strong style="color:#3D2B1F;">相手の立場を想像する練習になる</strong><br>
+            親の投稿を読む子ども、子どもの投稿を読む親——<br>
+            自分とは違う立場の気持ちに触れることで、相手への理解が深まります。<br><br>
+            <strong style="color:#3D2B1F;">言葉にする勇気をもらえる</strong><br>
+            他の人が正直に書いた言葉を見て、「自分も書いてみよう」と思えることがあります。<br><br>
+            プライバシーが気になる方は、匿名モードでの投稿をご利用ください。
+        </div>
+    </div>
     """, unsafe_allow_html=True)
 
 # =============================
