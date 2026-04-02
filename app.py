@@ -405,14 +405,181 @@ def render_post_card(post):
     </div>
     """
 
+
+# --- サイドバーメニュー ---
+with st.sidebar:
+    try:
+        st.image("images/logo.png", width=60)
+    except:
+        pass
+    st.markdown('<div style="font-family:Georgia,serif;font-size:16px;font-weight:500;color:#3D2B1F;margin-bottom:4px;">こころのあいだ</div>', unsafe_allow_html=True)
+    st.markdown('<div style="font-size:11px;color:#9C7B6A;margin-bottom:16px;">こころのあいだを、ことばにする。</div>', unsafe_allow_html=True)
+    st.markdown('<hr style="border:none;border-top:1px dashed #D9C4B0;margin:8px 0 16px 0;">', unsafe_allow_html=True)
+    menu_items = [
+        ("🏠", "ホーム", "home"),
+        ("📖", "はじめに", "about"),
+        ("📋", "使い方ガイド", "guide"),
+        ("🔒", "プライバシーについて", "privacy"),
+        ("❓", "よくある質問", "faq"),
+    ]
+    for icon, label, view_name in menu_items:
+        if st.button(f"{icon} {label}", key=f"menu_{view_name}", use_container_width=True):
+            st.session_state.view = view_name
+            st.rerun()
+
 # --- 画面遷移制御 ---
 if "view" not in st.session_state:
     st.session_state.view = "home"
 
+
+# =============================
+# 画面: はじめに
+# =============================
+if st.session_state.view == "about":
+    st.markdown('<div class="section-header">📖 はじめに・このアプリについて</div>', unsafe_allow_html=True)
+    st.markdown("""
+    <div class="concept-card">
+        <div class="concept-title">このアプリが生まれた理由</div>
+        <div class="concept-body">
+            親子の関係は、世界でいちばん近くて、いちばん難しい関係かもしれません。<br><br>
+            愛しているのに、うまく伝わらない。<br>
+            わかってほしいのに、わかってもらえない。<br>
+            そんなすれ違いの中で、ことばにできない気持ちが積もっていく——<br><br>
+            「こころのあいだ」は、そんな<strong style="color:#3D2B1F;">こころのあいだにあるものを、ことばにするための場所</strong>です。
+        </div>
+    </div>
+    <div class="concept-card">
+        <div class="concept-title">誰のためのアプリ？</div>
+        <div class="concept-body">
+            ・子どもに気持ちをうまく伝えられない親<br>
+            ・親にわかってもらえないと感じている子ども<br>
+            ・家族との関係を少しでもよくしたいと思っている人<br><br>
+            立場は関係ありません。親でも、子どもでも、どちらの視点からも使えます。
+        </div>
+    </div>
+    <div class="concept-card">
+        <div class="concept-title">AIとどう向き合うか</div>
+        <div class="concept-body">
+            このアプリのAIは、答えを出すためのものではありません。<br><br>
+            あなたの言葉を受け取り、隠れた気持ちを一緒に探し、相手の視点を想像する——<br>
+            そのための「鏡」として使ってください。<br><br>
+            AIはカウンセラーではありません。でも、ひとりで抱えていた気持ちを整理する手助けはできます。
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+# =============================
+# 画面: 使い方ガイド
+# =============================
+elif st.session_state.view == "guide":
+    st.markdown('<div class="section-header">📋 使い方ガイド</div>', unsafe_allow_html=True)
+    st.markdown("""
+    <div class="concept-card">
+        <div class="concept-title">基本の使い方（3ステップ）</div>
+        <div class="step-row"><div class="step-num">1</div><div class="step-text"><strong style="color:#3D2B1F;">こころを書き出す</strong><br>何があったか（事実）と、どう感じたか（感情）を書きます。うまく書けなくても大丈夫。思いつくままに。</div></div>
+        <div class="step-row"><div class="step-num">2</div><div class="step-text"><strong style="color:#3D2B1F;">AIと見つめ直す</strong><br>AIがあなたの投稿を分析します。隠れた気持ち、親の視点・子の視点、関係をよくするヒントが返ってきます。</div></div>
+        <div class="step-row"><div class="step-num">3</div><div class="step-text"><strong style="color:#3D2B1F;">AIとチャットする</strong><br>分析結果をもとに、AIと自由に対話できます。気になることを何でも聞いてみましょう。</div></div>
+    </div>
+    <div class="concept-card" style="border-left:4px solid #E8A87C;">
+        <div class="concept-title">✍️ ジャーナリングの大切さ</div>
+        <div class="concept-body">
+            頭の中だけにある悩みは、どんどん大きくなりがちです。<br>
+            感情的になっているとき、モヤモヤが晴れないとき——<br>
+            そんなときこそ、ことばにして外に出すことが大切です。<br><br>
+            書くことで、自分の気持ちを少し離れたところから見られるようになります。<br>
+            「あ、自分はこう感じていたんだ」という気づきが、こころの整理につながります。<br><br>
+            完璧な文章でなくていいです。正しい言葉でなくていいです。<br>
+            ただ、書いてみることから始めてみてください。
+        </div>
+    </div>
+    <div class="concept-card">
+        <div class="concept-title">📝 投稿のコツ・書き方のポイント</div>
+        <div class="concept-body">
+            <strong style="color:#3D2B1F;">事実と感情を分けて書く</strong><br>
+            「何があったか」と「どう感じたか」は別々に書くのがポイントです。<br><br>
+            <strong style="color:#3D2B1F;">「本当はどうしてほしかった？」を意識する</strong><br>
+            この問いに答えることで、自分の本当のニーズが見えてきます。<br><br>
+            <strong style="color:#3D2B1F;">一番つらかった瞬間を特定する</strong><br>
+            漠然とした辛さより、「あの一言」「あの瞬間」を具体的に書くと、AIの分析がより深くなります。
+        </div>
+    </div>
+    <div class="concept-card">
+        <div class="concept-title">💬 AIチャットの活用法</div>
+        <div class="concept-body">
+            AI分析が終わった後、チャットで自由に話しかけられます。<br><br>
+            <strong style="color:#3D2B1F;">相手の気持ちを聞く</strong>：「親はどんな気持ちで言ったんだと思う？」<br>
+            <strong style="color:#3D2B1F;">伝え方を相談する</strong>：「どう話しかければうまく伝わる？」<br>
+            <strong style="color:#3D2B1F;">次の一歩を考える</strong>：「まず何をすればいいと思う？」<br><br>
+            AIは批判しません。ただ、あなたの気持ちに寄り添って一緒に考えます。
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+# =============================
+# 画面: プライバシー
+# =============================
+elif st.session_state.view == "privacy":
+    st.markdown('<div class="section-header">🔒 プライバシーについて</div>', unsafe_allow_html=True)
+    st.markdown("""
+    <div class="concept-card">
+        <div class="concept-title">取得する情報</div>
+        <div class="concept-body">
+            このアプリが保存するのは、あなたが入力した投稿内容のみです。<br><br>
+            ・投稿のタイトル・本文・感情<br>
+            ・あなたが選んだ立場・テーマ<br>
+            ・任意で入力したお名前（入力した場合のみ）<br>
+            ・端末を識別するための匿名ID<br><br>
+            <strong style="color:#3D2B1F;">メールアドレス・電話番号・氏名などの個人情報は一切取得しません。</strong>
+        </div>
+    </div>
+    <div class="concept-card">
+        <div class="concept-title">データの保存先</div>
+        <div class="concept-body">
+            投稿データはSupabase（アメリカのクラウドサービス）に保存されます。<br>
+            データは暗号化されて保存され、第三者に共有されることはありません。
+        </div>
+    </div>
+    <div class="concept-card">
+        <div class="concept-title">AIへのデータ送信</div>
+        <div class="concept-body">
+            「AIと見つめ直す」機能を使うと、投稿内容がGroq社のAIに送信されます。<br>
+            AIへの送信はあなたがボタンを押したときのみ行われます。<br>
+            AIによって学習データとして使用されることはありません。
+        </div>
+    </div>
+    <div class="concept-card">
+        <div class="concept-title">投稿の削除</div>
+        <div class="concept-body">
+            投稿はいつでも削除できます。削除した投稿は完全に消去され、復元できません。
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+# =============================
+# 画面: FAQ
+# =============================
+elif st.session_state.view == "faq":
+    st.markdown('<div class="section-header">❓ よくある質問</div>', unsafe_allow_html=True)
+    faqs = [
+        ("投稿は他の人に見られますか？", "現在このアプリはトップページにすべての投稿が表示される仕様です。匿名モードを使うと名前は表示されません。気になる方は匿名での投稿をおすすめします。"),
+        ("ブラウザを閉じたら投稿は消えますか？", "投稿はデータベースに保存されるため、ブラウザを閉じても消えません。ただし「マイページ」は端末IDで管理しているため、別のブラウザや端末では表示されないことがあります。"),
+        ("AIは本物のカウンセラーですか？", "AIはカウンセラーではありません。気持ちの整理を手助けするツールです。深刻な悩みについては、専門家への相談をおすすめします。"),
+        ("投稿を編集・削除できますか？", "はい、できます。投稿カードの「✏️ 編集」「🗑️ 削除」ボタンから操作できます。削除した投稿は元に戻せません。"),
+        ("匿名モードとは何ですか？", "投稿時に「匿名にする」にチェックを入れると、投稿者名が「匿名」と表示されます。"),
+        ("無料で使えますか？", "はい、完全無料で使えます。"),
+    ]
+    for q, a in faqs:
+        st.markdown(f"""
+        <div class="concept-card" style="margin-bottom:10px;">
+            <div style="font-size:14px;font-weight:500;color:#3D2B1F;margin-bottom:8px;">Q. {q}</div>
+            <div style="font-size:13px;color:#6B5043;line-height:1.7;">A. {a}</div>
+        </div>
+        """, unsafe_allow_html=True)
+
 # =============================
 # 画面: ホーム
 # =============================
-if st.session_state.view == "home":
+elif st.session_state.view == "home":
     try:
         col_logo, col_title = st.columns([1, 4])
         with col_logo:
