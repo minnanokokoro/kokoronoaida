@@ -6,7 +6,7 @@ import uuid
 from datetime import datetime
 
 # --- ページ設定 ---
-st.set_page_config(page_title="こころのあいだ", page_icon="images/logo.png", layout="centered")
+st.set_page_config(page_title="こころのあいだ", page_icon="images/logo_side.png", layout="centered")
 
 st.markdown("""
     <style>
@@ -367,7 +367,7 @@ def render_post_card(post):
 # --- サイドバーメニュー ---
 with st.sidebar:
     try:
-        st.image("images/logo.png", width=60)
+        st.image("images/logo_side.png", width=60)
     except:
         pass
     st.markdown('<div style="font-family:Georgia,serif;font-size:16px;font-weight:500;color:#3D2B1F;margin-bottom:4px;">こころのあいだ</div>', unsafe_allow_html=True)
