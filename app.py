@@ -421,6 +421,23 @@ with st.sidebar:
             st.session_state.view = view_name
             st.rerun()
 
+    st.markdown('<hr style="border:none;border-top:1px dashed #D9C4B0;margin:16px 0 12px 0;">', unsafe_allow_html=True)
+
+    if st.session_state.get("is_admin"):
+        st.markdown('<div style="font-size:12px;color:#E8A87C;text-align:center;margin-bottom:8px;">管理者モード中</div>', unsafe_allow_html=True)
+        if st.button("管理者ログアウト", use_container_width=True):
+            st.session_state.is_admin = False
+            st.rerun()
+    else:
+        with st.expander("管理者ログイン"):
+            admin_code = st.text_input("管理者コード", type="password", key="admin_code_input")
+            if st.button("ログイン", key="admin_login", use_container_width=True):
+                if admin_code == st.secrets.get("ADMIN_PASSWORD", ""):
+                    st.session_state.is_admin = True
+                    st.rerun()
+                else:
+                    st.error("コードが違います")
+
 # --- 画面遷移制御 ---
 if "view" not in st.session_state:
     st.session_state.view = "home"
@@ -615,7 +632,8 @@ elif st.session_state.view == "home":
     for post in posts:
         st.markdown(render_post_card(post), unsafe_allow_html=True)
         is_mine = post.get("device_id") == st.session_state.device_id
-        if is_mine:
+        is_admin = st.session_state.get("is_admin", False)
+        if is_mine or is_admin:
             col1, col2, col3 = st.columns([3, 1, 1])
             with col1:
                 if st.button("AI分析を見る", key=f"detail_{post['id']}"):
@@ -804,7 +822,8 @@ elif st.session_state.view == "detail":
         st.session_state.view = "home"
         st.rerun()
     is_mine = post.get("device_id") == st.session_state.device_id
-    if is_mine:
+    is_admin = st.session_state.get("is_admin", False)
+    if is_mine or is_admin:
         col_edit, col_delete = st.columns([1, 1])
         with col_edit:
             if st.button("編集", use_container_width=True):
