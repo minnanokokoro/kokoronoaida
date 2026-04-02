@@ -6,7 +6,7 @@ import uuid
 from datetime import datetime
 
 # --- ページ設定 ---
-st.set_page_config(page_title="こころのあいだ", page_icon="🧡", layout="centered")
+st.set_page_config(page_title="こころのあいだ", page_icon="images/logo.png", layout="centered")
 
 st.markdown("""
     <style>
@@ -97,24 +97,6 @@ st.markdown("""
         padding: 18px;
         margin-bottom: 14px;
     }
-    .post-card-title {
-        font-family: 'Noto Serif JP', Georgia, serif;
-        font-size: 15px;
-        font-weight: 500;
-        color: #3D2B1F;
-        margin-bottom: 6px;
-    }
-    .post-card-meta {
-        font-size: 12px;
-        color: #B07050;
-        margin-bottom: 8px;
-    }
-    .post-card-body {
-        font-size: 13px;
-        color: #6B5043;
-        line-height: 1.7;
-        margin-bottom: 10px;
-    }
     .badge-position {
         display: inline-block;
         font-size: 11px;
@@ -174,7 +156,7 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 # --- テーマアイコン ---
-THEME_ICONS = {"親子関係": "💬", "子育て": "🌱", "受験・進路": "📖"}
+THEME_ICONS = {"親子関係": "●", "子育て": "●", "受験・進路": "●"}
 
 # --- Supabase設定 ---
 @st.cache_resource
@@ -184,28 +166,6 @@ def get_supabase():
 # --- 端末ID生成（LocalStorageで永続化） ---
 if "device_id" not in st.session_state:
     st.session_state.device_id = str(uuid.uuid4())
-
-device_id_js = f"""
-<script>
-(function() {{
-    let id = localStorage.getItem('kokoro_device_id');
-    if (!id) {{
-        id = '{st.session_state.device_id}';
-        localStorage.setItem('kokoro_device_id', id);
-    }}
-    // Streamlitにデバイスカスタムイベントは送れないので、hiddenフィールドで渡す
-    const el = window.parent.document.querySelector('input[data-device-id]');
-    if (!el) {{
-        const inp = window.parent.document.createElement('input');
-        inp.setAttribute('data-device-id', id);
-        inp.type = 'hidden';
-        window.parent.document.body.appendChild(inp);
-    }}
-    // セッションストレージにも保存
-    sessionStorage.setItem('kokoro_device_id', id);
-}})();
-</script>
-"""
 
 import streamlit.components.v1 as components
 
@@ -390,7 +350,6 @@ def chat_with_ai(post, analysis, chat_history, user_message):
 
 # --- カードHTML生成 ---
 def render_post_card(post):
-    icon = THEME_ICONS.get(post['theme'], '📝')
     tags_html = ''.join([f'<span class="tag-pill">#{t}</span>' for t in post.get('tags', [])])
     anon_badge = '<span class="badge-anon">匿名</span>' if post.get('isAnonymous') else ''
     author_text = f'<span style="font-size:12px;color:#9C7B6A;margin-left:4px;">{post.get("author","")}</span>' if post.get("author") and not post.get("isAnonymous") else ''
@@ -398,13 +357,12 @@ def render_post_card(post):
     preview = post['whatHappened'][:45] + '...' if len(post['whatHappened']) > 45 else post['whatHappened']
     return f"""
     <div class="post-card">
-        <div class="post-card-title">{post['title']}{anon_badge}{author_text}{position_badge}</div>
-        <div class="post-card-meta"><span>{icon} {post['theme']}</span> &nbsp;·&nbsp; <span>{post['createdAt']}</span></div>
-        <div class="post-card-body">{preview}</div>
+        <div style="font-family:'Noto Serif JP',Georgia,serif;font-size:15px;font-weight:500;color:#3D2B1F;margin-bottom:6px;">{post['title']}{anon_badge}{author_text}{position_badge}</div>
+        <div style="font-size:12px;color:#B07050;margin-bottom:8px;">{post['theme']} &nbsp;·&nbsp; {post['createdAt']}</div>
+        <div style="font-size:13px;color:#6B5043;line-height:1.7;margin-bottom:10px;">{preview}</div>
         {f'<div style="margin-bottom:10px;">{tags_html}</div>' if tags_html else ''}
     </div>
     """
-
 
 # --- サイドバーメニュー ---
 with st.sidebar:
@@ -431,12 +389,11 @@ with st.sidebar:
 if "view" not in st.session_state:
     st.session_state.view = "home"
 
-
 # =============================
 # 画面: はじめに
 # =============================
 if st.session_state.view == "about":
-    st.markdown('<div class="section-header">📖 はじめに・このアプリについて</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-header">はじめに・このアプリについて</div>', unsafe_allow_html=True)
     st.markdown("""
     <div class="concept-card">
         <div class="concept-title">このアプリが生まれた理由</div>
@@ -487,7 +444,7 @@ if st.session_state.view == "about":
 # 画面: 使い方ガイド
 # =============================
 elif st.session_state.view == "guide":
-    st.markdown('<div class="section-header">📋 使い方ガイド</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-header">使い方ガイド</div>', unsafe_allow_html=True)
     st.markdown("""
     <div class="concept-card">
         <div class="concept-title">基本の使い方（3ステップ）</div>
@@ -496,7 +453,7 @@ elif st.session_state.view == "guide":
         <div class="step-row"><div class="step-num">3</div><div class="step-text"><strong style="color:#3D2B1F;">AIとチャットする</strong><br>分析結果をもとに、AIと自由に対話できます。気になることを何でも聞いてみましょう。</div></div>
     </div>
     <div class="concept-card" style="border-left:4px solid #E8A87C;">
-        <div class="concept-title">✍️ ジャーナリングの大切さ</div>
+        <div class="concept-title">ジャーナリングの大切さ</div>
         <div class="concept-body">
             頭の中だけにある悩みは、どんどん大きくなりがちです。<br>
             感情的になっているとき、モヤモヤが晴れないとき——<br>
@@ -508,7 +465,7 @@ elif st.session_state.view == "guide":
         </div>
     </div>
     <div class="concept-card">
-        <div class="concept-title">📝 投稿のコツ・書き方のポイント</div>
+        <div class="concept-title">投稿のコツ・書き方のポイント</div>
         <div class="concept-body">
             <strong style="color:#3D2B1F;">事実と感情を分けて書く</strong><br>
             「何があったか」と「どう感じたか」は別々に書くのがポイントです。<br><br>
@@ -519,7 +476,7 @@ elif st.session_state.view == "guide":
         </div>
     </div>
     <div class="concept-card">
-        <div class="concept-title">💬 AIチャットの活用法</div>
+        <div class="concept-title">AIチャットの活用法</div>
         <div class="concept-body">
             AI分析が終わった後、チャットで自由に話しかけられます。<br><br>
             <strong style="color:#3D2B1F;">相手の気持ちを聞く</strong>：「親はどんな気持ちで言ったんだと思う？」<br>
@@ -534,7 +491,7 @@ elif st.session_state.view == "guide":
 # 画面: プライバシー
 # =============================
 elif st.session_state.view == "privacy":
-    st.markdown('<div class="section-header">🔒 プライバシーについて</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-header">プライバシーについて</div>', unsafe_allow_html=True)
     st.markdown("""
     <div class="concept-card">
         <div class="concept-title">取得する情報</div>
@@ -574,12 +531,12 @@ elif st.session_state.view == "privacy":
 # 画面: FAQ
 # =============================
 elif st.session_state.view == "faq":
-    st.markdown('<div class="section-header">❓ よくある質問</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-header">よくある質問</div>', unsafe_allow_html=True)
     faqs = [
         ("投稿は他の人に見られますか？", "現在このアプリはトップページにすべての投稿が表示される仕様です。匿名モードを使うと名前は表示されません。気になる方は匿名での投稿をおすすめします。"),
         ("ブラウザを閉じたら投稿は消えますか？", "投稿はデータベースに保存されるため、ブラウザを閉じても消えません。ただし「マイページ」は端末IDで管理しているため、別のブラウザや端末では表示されないことがあります。"),
         ("AIは本物のカウンセラーですか？", "AIはカウンセラーではありません。気持ちの整理を手助けするツールです。深刻な悩みについては、専門家への相談をおすすめします。"),
-        ("投稿を編集・削除できますか？", "はい、できます。投稿カードの「✏️ 編集」「🗑️ 削除」ボタンから操作できます。削除した投稿は元に戻せません。"),
+        ("投稿を編集・削除できますか？", "はい、できます。投稿カードの「編集」「削除」ボタンから操作できます。削除した投稿は元に戻せません。"),
         ("匿名モードとは何ですか？", "投稿時に「匿名にする」にチェックを入れると、投稿者名が「匿名」と表示されます。"),
         ("無料で使えますか？", "はい、完全無料で使えます。"),
     ]
@@ -603,16 +560,16 @@ elif st.session_state.view == "home":
         with col_title:
             st.markdown(f"""<div style="display:flex; flex-direction:column; justify-content:flex-end; height:100%; padding-left:4px; margin-top:38px;"><div class="app-title">こころのあいだ</div><div class="app-caption">こころのあいだを、ことばにする。</div></div>""", unsafe_allow_html=True)
     except:
-        st.markdown('<div class="app-title">🧡 こころのあいだ</div>', unsafe_allow_html=True)
+        st.markdown('<div class="app-title">こころのあいだ</div>', unsafe_allow_html=True)
         st.markdown('<div class="app-caption">こころのあいだを、ことばにする。</div>', unsafe_allow_html=True)
 
     col_nav1, col_nav2 = st.columns([1, 1])
     with col_nav1:
-        if st.button("＋ こころを書き出す", use_container_width=True):
+        if st.button("こころを書き出す", use_container_width=True):
             st.session_state.view = "create"
             st.rerun()
     with col_nav2:
-        if st.button("👤 マイページ", use_container_width=True):
+        if st.button("マイページ", use_container_width=True):
             st.session_state.view = "mypage"
             st.rerun()
 
@@ -623,19 +580,19 @@ elif st.session_state.view == "home":
         st.markdown(render_post_card(post), unsafe_allow_html=True)
         col1, col2, col3 = st.columns([3, 1, 1])
         with col1:
-            if st.button("✨ AI分析を見る", key=f"detail_{post['id']}"):
+            if st.button("AI分析を見る", key=f"detail_{post['id']}"):
                 st.session_state.selected_post = post
                 st.session_state.analysis_result = None
                 st.session_state.chat_history = []
                 st.session_state.view = "detail"
                 st.rerun()
         with col2:
-            if st.button("✏️ 編集", key=f"edit_{post['id']}"):
+            if st.button("編集", key=f"edit_{post['id']}"):
                 st.session_state.selected_post = post
                 st.session_state.view = "edit"
                 st.rerun()
         with col3:
-            if st.button("🗑️ 削除", key=f"delete_{post['id']}"):
+            if st.button("削除", key=f"delete_{post['id']}"):
                 st.session_state.delete_target_id = post['id']
                 st.session_state.view = "confirm_delete"
                 st.rerun()
@@ -645,7 +602,7 @@ elif st.session_state.view == "home":
 # 画面: 新規投稿
 # =============================
 elif st.session_state.view == "create":
-    st.markdown('<div class="section-header">🖊️ こころを書き出す</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-header">こころを書き出す</div>', unsafe_allow_html=True)
     st.caption("思いつくままに、ゆっくり書いてみてください。")
 
     with st.form("post_form"):
@@ -690,7 +647,7 @@ elif st.session_state.view == "create":
                 st.session_state.view = "home"
                 st.rerun()
 
-    if st.button("← キャンセルして戻る"):
+    if st.button("キャンセルして戻る"):
         st.session_state.view = "home"
         st.rerun()
 
@@ -699,7 +656,7 @@ elif st.session_state.view == "create":
 # =============================
 elif st.session_state.view == "edit":
     post = st.session_state.selected_post
-    st.markdown('<div class="section-header">✏️ 投稿を編集する</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-header">投稿を編集する</div>', unsafe_allow_html=True)
 
     with st.form("edit_form"):
         title = st.text_input("タイトル", value=post['title'])
@@ -730,7 +687,7 @@ elif st.session_state.view == "edit":
                 st.session_state.view = "home"
                 st.rerun()
 
-    if st.button("← キャンセルして戻る"):
+    if st.button("キャンセルして戻る"):
         st.session_state.view = "home"
         st.rerun()
 
@@ -742,7 +699,7 @@ elif st.session_state.view == "confirm_delete":
     posts = load_posts()
     target_post = next((p for p in posts if p['id'] == target_id), None)
 
-    st.markdown('<div class="section-header">🗑️ 投稿を削除しますか？</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-header">投稿を削除しますか？</div>', unsafe_allow_html=True)
     if target_post:
         st.warning(f"「{target_post['title']}」を削除します。この操作は元に戻せません。")
 
@@ -761,11 +718,7 @@ elif st.session_state.view == "confirm_delete":
 # 画面: マイページ
 # =============================
 elif st.session_state.view == "mypage":
-    if st.button("← ホームへ戻る"):
-        st.session_state.view = "home"
-        st.rerun()
-
-    st.markdown('<div class="section-header">👤 マイページ</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-header">マイページ</div>', unsafe_allow_html=True)
     st.caption("この端末から投稿した記録です。")
 
     all_posts = load_posts()
@@ -779,19 +732,19 @@ elif st.session_state.view == "mypage":
             st.markdown(render_post_card(post), unsafe_allow_html=True)
             col1, col2, col3 = st.columns([3, 1, 1])
             with col1:
-                if st.button("✨ AI分析を見る", key=f"my_detail_{post['id']}"):
+                if st.button("AI分析を見る", key=f"my_detail_{post['id']}"):
                     st.session_state.selected_post = post
                     st.session_state.analysis_result = None
                     st.session_state.chat_history = []
                     st.session_state.view = "detail"
                     st.rerun()
             with col2:
-                if st.button("✏️ 編集", key=f"my_edit_{post['id']}"):
+                if st.button("編集", key=f"my_edit_{post['id']}"):
                     st.session_state.selected_post = post
                     st.session_state.view = "edit"
                     st.rerun()
             with col3:
-                if st.button("🗑️ 削除", key=f"my_delete_{post['id']}"):
+                if st.button("削除", key=f"my_delete_{post['id']}"):
                     st.session_state.delete_target_id = post['id']
                     st.session_state.view = "confirm_delete"
                     st.rerun()
@@ -808,21 +761,20 @@ elif st.session_state.view == "detail":
             st.session_state.view = "home"
             st.rerun()
     with col_edit:
-        if st.button("✏️ 編集"):
+        if st.button("編集"):
             st.session_state.view = "edit"
             st.rerun()
     with col_delete:
-        if st.button("🗑️ 削除"):
+        if st.button("削除"):
             st.session_state.delete_target_id = post['id']
             st.session_state.view = "confirm_delete"
             st.rerun()
 
-    icon = THEME_ICONS.get(post['theme'], '📝')
     anon_badge = '<span class="badge-anon">匿名</span>' if post.get('isAnonymous') else ''
     author_text = f'<span style="font-size:12px;color:#9C7B6A;margin-left:4px;">{post.get("author","")}</span>' if post.get("author") and not post.get("isAnonymous") else ''
 
     st.markdown(f'<div class="section-header">{post["title"]}{anon_badge}{author_text}</div>', unsafe_allow_html=True)
-    st.markdown(f'<div style="font-size:13px;color:#B07050;margin-bottom:12px;">{icon} {post["theme"]} &nbsp;·&nbsp; {post["position"]} &nbsp;·&nbsp; {post["createdAt"]}</div>', unsafe_allow_html=True)
+    st.markdown(f'<div style="font-size:13px;color:#B07050;margin-bottom:12px;">{post["theme"]} &nbsp;·&nbsp; {post["position"]} &nbsp;·&nbsp; {post["createdAt"]}</div>', unsafe_allow_html=True)
 
     st.markdown(f'<div style="background:#FFFDF8;border:1.5px solid #E8D8C4;border-left:4px solid #E8A87C;border-radius:12px;padding:16px;margin-bottom:10px;"><div style="font-size:12px;color:#9C7B6A;margin-bottom:4px;">何があったか</div><div style="font-size:14px;color:#3D2B1F;line-height:1.7;">{post["whatHappened"]}</div></div>', unsafe_allow_html=True)
     st.markdown(f'<div style="background:#FFFDF8;border:1.5px solid #E8D8C4;border-left:4px solid #C4A882;border-radius:12px;padding:16px;margin-bottom:10px;"><div style="font-size:12px;color:#9C7B6A;margin-bottom:4px;">どう感じたか</div><div style="font-size:14px;color:#3D2B1F;line-height:1.7;">{post["howFelt"]}</div></div>', unsafe_allow_html=True)
@@ -839,20 +791,20 @@ elif st.session_state.view == "detail":
         st.session_state.chat_history = []
 
     if st.session_state.analysis_result is None:
-        if st.button("✨ AIと見つめ直す"):
+        if st.button("AIと見つめ直す"):
             with st.spinner("言葉を紡いでいます..."):
                 result = analyze_post(post)
                 if "error" in result:
                     st.error(f"分析に失敗しました: {result['error']}")
                 else:
                     st.session_state.analysis_result = result
-                    st.session_state.chat_history = [{"role": "assistant", "content": "分析が終わりました。気になること、もっと深めたいこと、何でも話しかけてみてください。一緒に考えます🧡"}]
+                    st.session_state.chat_history = [{"role": "assistant", "content": "分析が終わりました。気になること、もっと深めたいこと、何でも話しかけてみてください。一緒に考えます。"}]
                     st.rerun()
 
     if st.session_state.analysis_result:
         result = st.session_state.analysis_result
-        st.markdown(f'<div style="background:#FFFDF8;border:1.5px solid #E8D8C4;border-radius:12px;padding:16px;margin-bottom:10px;"><div style="font-size:13px;font-weight:500;color:#3D2B1F;margin-bottom:6px;">🔍 投稿の整理</div><div style="font-size:14px;color:#4A2C1A;line-height:1.7;">{result.get("overview","")}</div></div>', unsafe_allow_html=True)
-        st.markdown(f'<div style="background:#FFF5EE;border:1.5px solid #F0CDB0;border-radius:12px;padding:16px;margin-bottom:10px;"><div style="font-size:13px;font-weight:500;color:#3D2B1F;margin-bottom:6px;">🧡 見えてくる気持ち</div><div style="font-size:14px;color:#4A2C1A;line-height:1.7;">{result.get("hidden_feelings","")}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div style="background:#FFFDF8;border:1.5px solid #E8D8C4;border-radius:12px;padding:16px;margin-bottom:10px;"><div style="font-size:13px;font-weight:500;color:#3D2B1F;margin-bottom:6px;">投稿の整理</div><div style="font-size:14px;color:#4A2C1A;line-height:1.7;">{result.get("overview","")}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div style="background:#FFF5EE;border:1.5px solid #F0CDB0;border-radius:12px;padding:16px;margin-bottom:10px;"><div style="font-size:13px;font-weight:500;color:#3D2B1F;margin-bottom:6px;">見えてくる気持ち</div><div style="font-size:14px;color:#4A2C1A;line-height:1.7;">{result.get("hidden_feelings","")}</div></div>', unsafe_allow_html=True)
 
         col1, col2 = st.columns(2)
         with col1:
@@ -863,15 +815,15 @@ elif st.session_state.view == "detail":
         hints = result.get('actionable_hints', [])
         if hints:
             hints_html = ''.join([f'<div style="display:flex;gap:8px;margin-bottom:8px;"><span style="color:#E8A87C;font-weight:500;">·</span><span style="font-size:14px;color:#4A2C1A;line-height:1.7;">{h}</span></div>' for h in hints])
-            st.markdown(f'<div style="background:#FFFDF8;border:1.5px solid #E8D8C4;border-radius:12px;padding:16px;margin-top:10px;"><div style="font-size:13px;font-weight:500;color:#3D2B1F;margin-bottom:10px;">💡 関係をよくするヒント</div>{hints_html}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div style="background:#FFFDF8;border:1.5px solid #E8D8C4;border-radius:12px;padding:16px;margin-top:10px;"><div style="font-size:13px;font-weight:500;color:#3D2B1F;margin-bottom:10px;">関係をよくするヒント</div>{hints_html}</div>', unsafe_allow_html=True)
 
         st.markdown('<hr class="divider">', unsafe_allow_html=True)
-        st.markdown('<div style="font-size:15px;font-weight:500;color:#3D2B1F;margin-bottom:4px;">💬 AIとさらに話してみる</div>', unsafe_allow_html=True)
+        st.markdown('<div style="font-size:15px;font-weight:500;color:#3D2B1F;margin-bottom:4px;">AIとさらに話してみる</div>', unsafe_allow_html=True)
         st.caption("気持ちを深堀りしたり、具体的なアドバイスを聞いたり、自由に話しかけてください。")
 
         for msg in st.session_state.chat_history:
             if msg["role"] == "assistant":
-                st.markdown(f'<div class="chat-ai">🧡 {msg["content"]}</div>', unsafe_allow_html=True)
+                st.markdown(f'<div class="chat-ai">{msg["content"]}</div>', unsafe_allow_html=True)
             else:
                 st.markdown(f'<div class="chat-user">{msg["content"]}</div>', unsafe_allow_html=True)
 
