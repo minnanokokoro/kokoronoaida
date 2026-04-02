@@ -614,23 +614,32 @@ elif st.session_state.view == "home":
     posts = load_posts()
     for post in posts:
         st.markdown(render_post_card(post), unsafe_allow_html=True)
-        col1, col2, col3 = st.columns([3, 1, 1])
-        with col1:
+        is_mine = post.get("device_id") == st.session_state.device_id
+        if is_mine:
+            col1, col2, col3 = st.columns([3, 1, 1])
+            with col1:
+                if st.button("AI分析を見る", key=f"detail_{post['id']}"):
+                    st.session_state.selected_post = post
+                    st.session_state.analysis_result = None
+                    st.session_state.chat_history = []
+                    st.session_state.view = "detail"
+                    st.rerun()
+            with col2:
+                if st.button("編集", key=f"edit_{post['id']}"):
+                    st.session_state.selected_post = post
+                    st.session_state.view = "edit"
+                    st.rerun()
+            with col3:
+                if st.button("削除", key=f"delete_{post['id']}"):
+                    st.session_state.delete_target_id = post['id']
+                    st.session_state.view = "confirm_delete"
+                    st.rerun()
+        else:
             if st.button("AI分析を見る", key=f"detail_{post['id']}"):
                 st.session_state.selected_post = post
                 st.session_state.analysis_result = None
                 st.session_state.chat_history = []
                 st.session_state.view = "detail"
-                st.rerun()
-        with col2:
-            if st.button("編集", key=f"edit_{post['id']}"):
-                st.session_state.selected_post = post
-                st.session_state.view = "edit"
-                st.rerun()
-        with col3:
-            if st.button("削除", key=f"delete_{post['id']}"):
-                st.session_state.delete_target_id = post['id']
-                st.session_state.view = "confirm_delete"
                 st.rerun()
         st.markdown('<div style="margin-bottom:8px;"></div>', unsafe_allow_html=True)
 
@@ -794,16 +803,18 @@ elif st.session_state.view == "detail":
     if st.button("← 一覧へ戻る", use_container_width=True):
         st.session_state.view = "home"
         st.rerun()
-    col_edit, col_delete = st.columns([1, 1])
-    with col_edit:
-        if st.button("編集", use_container_width=True):
-            st.session_state.view = "edit"
-            st.rerun()
-    with col_delete:
-        if st.button("削除", use_container_width=True):
-            st.session_state.delete_target_id = post['id']
-            st.session_state.view = "confirm_delete"
-            st.rerun()
+    is_mine = post.get("device_id") == st.session_state.device_id
+    if is_mine:
+        col_edit, col_delete = st.columns([1, 1])
+        with col_edit:
+            if st.button("編集", use_container_width=True):
+                st.session_state.view = "edit"
+                st.rerun()
+        with col_delete:
+            if st.button("削除", use_container_width=True):
+                st.session_state.delete_target_id = post['id']
+                st.session_state.view = "confirm_delete"
+                st.rerun()
 
     anon_badge = '<span class="badge-anon">匿名</span>' if post.get('isAnonymous') else ''
     author_text = f'<span style="font-size:12px;color:#9C7B6A;margin-left:4px;">{post.get("author","")}</span>' if post.get("author") and not post.get("isAnonymous") else ''
