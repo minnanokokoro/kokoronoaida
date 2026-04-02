@@ -755,17 +755,16 @@ elif st.session_state.view == "mypage":
 elif st.session_state.view == "detail":
     post = st.session_state.selected_post
 
-    col_back, col_edit, col_delete = st.columns([3, 1, 1])
-    with col_back:
-        if st.button("← 一覧へ戻る"):
-            st.session_state.view = "home"
-            st.rerun()
+    if st.button("← 一覧へ戻る", use_container_width=True):
+        st.session_state.view = "home"
+        st.rerun()
+    col_edit, col_delete = st.columns([1, 1])
     with col_edit:
-        if st.button("編集"):
+        if st.button("編集", use_container_width=True):
             st.session_state.view = "edit"
             st.rerun()
     with col_delete:
-        if st.button("削除"):
+        if st.button("削除", use_container_width=True):
             st.session_state.delete_target_id = post['id']
             st.session_state.view = "confirm_delete"
             st.rerun()
