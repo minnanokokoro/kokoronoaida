@@ -301,42 +301,10 @@ def report_post(post_id, reason):
 def load_reports():
     try:
         supabase = get_supabase()
-        res = supabase.table("reports").select("*, posts(title, position, theme, what_happened)").order("created_at", desc=True).execute()
+        res = supabase.table("reports").select("*, posts(title, position, theme, what_happened, how_felt, really_wanted, hardest_moment)").order("created_at", desc=True).execute()
         return res.data
     except Exception as e:
         return []
-
-# --- 関数: AI投稿チェック ---
-def check_post_content(happened, felt, really_wanted, hardest_moment):
-    client = Groq(api_key=st.secrets["GROQ_API_KEY"])
-    prompt = f"""
-以下の投稿内容を審査してください。
-親子関係の悩みを共有するアプリの投稿です。
-
-内容1: {happened}
-内容2: {felt}
-内容3: {really_wanted}
-内容4: {hardest_moment}
-
-以下のいずれかに該当する場合は "NG" と返してください：
-- 特定の個人への攻撃・誹謗中傷
-- 差別的・侮辱的な表現
-- 暴力的・過激な表現
-- 性的な表現
-- スパムや無関係な内容
-
-問題なければ "OK" とだけ返してください。NGの場合は "NG: 理由" の形式で返してください。
-"""
-    try:
-        response = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=100
-        )
-        result = response.choices[0].message.content.strip()
-        return result
-    except Exception as e:
-        return "OK"
 
 # --- 関数: AI分析 ---
 def analyze_post(post):
@@ -864,30 +832,24 @@ elif st.session_state.view == "create":
 
         submitted = st.form_submit_button("静かに投稿する")
         if submitted:
-            with st.spinner("投稿内容を確認しています..."):
-                check_result = check_post_content(happened, felt, really_wanted, hardest_moment)
-            if check_result.startswith("NG"):
-                reason = check_result.replace("NG:", "").replace("NG", "").strip()
-                st.error(f"この内容は投稿できません。{reason if reason else '不適切な表現が含まれている可能性があります。'}")
-            else:
-                new_post = {
-                    "id": str(uuid.uuid4()),
-                    "title": title if title else "名もなき感情",
-                    "author": author,
-                    "isAnonymous": is_anonymous,
-                    "position": position,
-                    "theme": theme,
-                    "whatHappened": happened,
-                    "howFelt": felt,
-                    "reallyWanted": really_wanted,
-                    "hardestMoment": hardest_moment,
-                    "tags": [],
-                    "createdAt": str(datetime.now().date()),
-                    "device_id": st.session_state.device_id
-                }
-                if save_post(new_post):
-                    st.session_state.view = "home"
-                    st.rerun()
+            new_post = {
+                "id": str(uuid.uuid4()),
+                "title": title if title else "名もなき感情",
+                "author": author,
+                "isAnonymous": is_anonymous,
+                "position": position,
+                "theme": theme,
+                "whatHappened": happened,
+                "howFelt": felt,
+                "reallyWanted": really_wanted,
+                "hardestMoment": hardest_moment,
+                "tags": [],
+                "createdAt": str(datetime.now().date()),
+                "device_id": st.session_state.device_id
+            }
+            if save_post(new_post):
+                st.session_state.view = "home"
+                st.rerun()
 
     if st.button("キャンセルして戻る"):
         st.session_state.view = "home"
@@ -984,14 +946,23 @@ elif st.session_state.view == "admin_reports":
             title = post_info.get("title", "不明")
             position = post_info.get("position", "")
             theme = post_info.get("theme", "")
-            what_happened = post_info.get("what_happened", "")
+            what_happened = post_info.get("what_happened", "") or ""
+            how_felt = post_info.get("how_felt", "") or ""
+            really_wanted = post_info.get("really_wanted", "") or ""
+            hardest_moment = post_info.get("hardest_moment", "") or ""
 
+            import html as html_lib
             st.markdown(f"""
             <div style="background:#FFF5EE;border:1.5px solid #F0CDB0;border-left:4px solid #E8A87C;border-radius:12px;padding:16px;margin-bottom:10px;">
-                <div style="font-size:14px;font-weight:500;color:#3D2B1F;margin-bottom:4px;">{title}</div>
-                <div style="font-size:12px;color:#B07050;margin-bottom:6px;">{position} · {theme}</div>
-                <div style="font-size:13px;color:#6B5043;margin-bottom:8px;">{what_happened[:80]}...</div>
-                <div style="font-size:12px;background:#FDE8D8;color:#993C1D;padding:4px 10px;border-radius:8px;display:inline-block;">報告理由：{r.get('reason', '')}</div>
+                <div style="font-size:14px;font-weight:500;color:#3D2B1F;margin-bottom:4px;">{html_lib.escape(title)}</div>
+                <div style="font-size:12px;color:#B07050;margin-bottom:10px;">{position} · {theme}</div>
+                <div style="font-size:12px;color:#9C7B6A;margin-bottom:2px;">何があったか</div>
+                <div style="font-size:13px;color:#4A2C1A;line-height:1.7;margin-bottom:8px;">{html_lib.escape(what_happened)}</div>
+                <div style="font-size:12px;color:#9C7B6A;margin-bottom:2px;">どう感じたか</div>
+                <div style="font-size:13px;color:#4A2C1A;line-height:1.7;margin-bottom:8px;">{html_lib.escape(how_felt)}</div>
+                {f'<div style="font-size:12px;color:#9C7B6A;margin-bottom:2px;">本当はどうしてほしかったか</div><div style="font-size:13px;color:#4A2C1A;line-height:1.7;margin-bottom:8px;">{html_lib.escape(really_wanted)}</div>' if really_wanted else ''}
+                {f'<div style="font-size:12px;color:#9C7B6A;margin-bottom:2px;">一番つらかった瞬間</div><div style="font-size:13px;color:#4A2C1A;line-height:1.7;margin-bottom:8px;">{html_lib.escape(hardest_moment)}</div>' if hardest_moment else ''}
+                <div style="font-size:12px;background:#FDE8D8;color:#993C1D;padding:4px 10px;border-radius:8px;display:inline-block;margin-top:4px;">報告理由：{html_lib.escape(r.get('reason', ''))}</div>
             </div>
             """, unsafe_allow_html=True)
 
