@@ -431,15 +431,18 @@ def render_post_card(post):
 
     position_badge = f'<span style="background:{badge_bg};color:{badge_color};font-size:11px;padding:3px 12px;border-radius:20px;font-weight:500;white-space:nowrap;">{post["position"]}</span>'
 
+    import html as html_lib
+    safe_title = html_lib.escape(post['title'])
+    safe_preview = html_lib.escape(preview)
     tags_section = f'<div style="margin-bottom:10px;">{tags_html}</div>' if tags_html else ''
     return f"""
     <div style="background:{card_bg};border:1.5px solid {card_border};border-left:4px solid {card_left};border-radius:14px;padding:18px;margin-bottom:14px;">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
-            <div style="font-family:'Noto Serif JP',Georgia,serif;font-size:15px;font-weight:500;color:#3D2B1F;">{post['title']}{anon_badge}{author_text}</div>
+            <div style="font-family:'Noto Serif JP',Georgia,serif;font-size:15px;font-weight:500;color:#3D2B1F;">{safe_title}{anon_badge}{author_text}</div>
             {position_badge}
         </div>
         <div style="font-size:12px;color:#B07050;margin-bottom:8px;">{post['theme']} &nbsp;·&nbsp; {post['createdAt']}</div>
-        <div style="font-size:13px;color:#6B5043;line-height:1.7;margin-bottom:10px;">{preview}</div>
+        <div style="font-size:13px;color:#6B5043;line-height:1.7;margin-bottom:10px;">{safe_preview}</div>
         {tags_section}
     </div>
     """
