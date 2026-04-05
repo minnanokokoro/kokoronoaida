@@ -17,16 +17,23 @@ st.markdown("""
 
     .stButton>button {
         border-radius: 20px;
+        background-color: #FFFDF8;
+        color: #6B5043;
+        border: 1px solid #E8D8C4;
+        font-weight: 400;
+        padding: 6px 20px;
+    }
+    .stButton>button:hover {
+        background-color: #F5EDE4;
+        color: #4A2C1A;
+        border: 1px solid #D9C4B0;
+    }
+    div[data-testid="stFormSubmitButton"] > button,
+    div[data-testid="stButton"] > button[kind="primary"] {
         background-color: #E8A87C;
         color: #4A2C1A;
         border: none;
         font-weight: 500;
-        padding: 6px 20px;
-    }
-    .stButton>button:hover {
-        background-color: #D9956A;
-        color: #4A2C1A;
-        border: none;
     }
     .app-title {
         font-family: 'Noto Serif JP', Georgia, serif;
@@ -636,11 +643,12 @@ elif st.session_state.view == "home":
 
     col_nav1, col_nav2 = st.columns([1, 1])
     with col_nav1:
-        if st.button("こころを書き出す", use_container_width=True):
+        st.markdown('<style>.nav-btn button { background-color: #E8A87C !important; color: #4A2C1A !important; border: none !important; font-weight: 500 !important; }</style>', unsafe_allow_html=True)
+        if st.button("こころを書き出す", use_container_width=True, key="nav_create", type="primary"):
             st.session_state.view = "create"
             st.rerun()
     with col_nav2:
-        if st.button("マイページ", use_container_width=True):
+        if st.button("マイページ", use_container_width=True, key="nav_mypage", type="primary"):
             st.session_state.view = "mypage"
             st.rerun()
 
@@ -651,22 +659,18 @@ elif st.session_state.view == "home":
     if "selected_theme" not in st.session_state:
         st.session_state.selected_theme = "すべて"
 
-    filter_html = '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;">'
-    for theme in all_themes:
-        is_selected = st.session_state.selected_theme == theme
-        bg = "#E8A87C" if is_selected else "#FFFDF8"
-        color = "#4A2C1A" if is_selected else "#9C7B6A"
-        border = "none" if is_selected else "1px solid #E8D8C4"
-        filter_html += f'<span style="background:{bg};color:{color};border:{border};font-size:12px;padding:6px 14px;border-radius:20px;cursor:pointer;">{theme}</span>'
-    filter_html += '</div>'
-    st.markdown(filter_html, unsafe_allow_html=True)
+    st.markdown('<div style="font-size:12px;color:#9C7B6A;margin-bottom:8px;">カテゴリで絞り込む</div>', unsafe_allow_html=True)
 
-    cols = st.columns(len(all_themes))
+    cols = st.columns(5)
     for i, theme in enumerate(all_themes):
-        with cols[i]:
-            if st.button(theme, key=f"filter_{theme}", use_container_width=True):
+        with cols[i % 5]:
+            is_selected = st.session_state.selected_theme == theme
+            label = f"● {theme}" if is_selected else theme
+            if st.button(label, key=f"filter_{theme}", use_container_width=True):
                 st.session_state.selected_theme = theme
                 st.rerun()
+
+    st.markdown('<div style="margin-bottom:8px;"></div>', unsafe_allow_html=True)
 
     posts = load_posts()
     if st.session_state.selected_theme != "すべて":
