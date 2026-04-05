@@ -284,6 +284,60 @@ def delete_post(post_id):
         st.error(f"削除に失敗しました: {e}")
         return False
 
+# --- 関数: 投稿報告 ---
+def report_post(post_id, reason):
+    try:
+        supabase = get_supabase()
+        supabase.table("reports").insert({
+            "post_id": post_id,
+            "reason": reason
+        }).execute()
+        return True
+    except Exception as e:
+        st.error(f"報告に失敗しました: {e}")
+        return False
+
+# --- 関数: 報告一覧取得 ---
+def load_reports():
+    try:
+        supabase = get_supabase()
+        res = supabase.table("reports").select("*, posts(title, position, theme, what_happened)").order("created_at", desc=True).execute()
+        return res.data
+    except Exception as e:
+        return []
+
+# --- 関数: AI投稿チェック ---
+def check_post_content(happened, felt, really_wanted, hardest_moment):
+    client = Groq(api_key=st.secrets["GROQ_API_KEY"])
+    prompt = f"""
+以下の投稿内容を審査してください。
+親子関係の悩みを共有するアプリの投稿です。
+
+内容1: {happened}
+内容2: {felt}
+内容3: {really_wanted}
+内容4: {hardest_moment}
+
+以下のいずれかに該当する場合は "NG" と返してください：
+- 特定の個人への攻撃・誹謗中傷
+- 差別的・侮辱的な表現
+- 暴力的・過激な表現
+- 性的な表現
+- スパムや無関係な内容
+
+問題なければ "OK" とだけ返してください。NGの場合は "NG: 理由" の形式で返してください。
+"""
+    try:
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=100
+        )
+        result = response.choices[0].message.content.strip()
+        return result
+    except Exception as e:
+        return "OK"
+
 # --- 関数: AI分析 ---
 def analyze_post(post):
     client = Groq(api_key=st.secrets["GROQ_API_KEY"])
@@ -450,6 +504,9 @@ with st.sidebar:
 
     if st.session_state.get("is_admin"):
         st.markdown('<div style="font-size:12px;color:#E8A87C;text-align:center;margin-bottom:8px;">管理者モード中</div>', unsafe_allow_html=True)
+        if st.button("報告一覧を見る", use_container_width=True, key="admin_reports_btn"):
+            st.session_state.view = "admin_reports"
+            st.rerun()
         if st.button("管理者ログアウト", use_container_width=True):
             st.session_state.is_admin = False
             st.rerun()
@@ -726,13 +783,52 @@ elif st.session_state.view == "home":
                     st.session_state.view = "confirm_delete"
                     st.rerun()
         else:
-            if st.button("AI分析を見る", key=f"detail_{post['id']}"):
-                st.session_state.selected_post = post
-                st.session_state.analysis_result = None
-                st.session_state.chat_history = []
-                st.session_state.view = "detail"
-                st.rerun()
+            col_a, col_b = st.columns([3, 1])
+            with col_a:
+                if st.button("AI分析を見る", key=f"detail_{post['id']}"):
+                    st.session_state.selected_post = post
+                    st.session_state.analysis_result = None
+                    st.session_state.chat_history = []
+                    st.session_state.view = "detail"
+                    st.rerun()
+            with col_b:
+                if st.button("報告する", key=f"report_{post['id']}"):
+                    st.session_state.report_target_id = post['id']
+                    st.session_state.view = "report"
+                    st.rerun()
         st.markdown('<div style="margin-bottom:8px;"></div>', unsafe_allow_html=True)
+
+# =============================
+# 画面: 報告
+# =============================
+elif st.session_state.view == "report":
+    target_id = st.session_state.get("report_target_id")
+    st.markdown('<div class="section-header">投稿を報告する</div>', unsafe_allow_html=True)
+    st.caption("不適切な投稿を管理者に報告します。")
+
+    reason = st.selectbox("報告理由", [
+        "攻撃的・暴力的な表現",
+        "誹謗中傷・個人攻撃",
+        "差別的な表現",
+        "スパム・無関係な内容",
+        "その他"
+    ])
+    detail = st.text_area("詳細（任意）", placeholder="気になった点を具体的に書いてください")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("報告を送信する", type="primary", use_container_width=True):
+            full_reason = f"{reason}{'：' + detail if detail else ''}"
+            if report_post(target_id, full_reason):
+                st.success("報告を受け付けました。ご協力ありがとうございます。")
+                import time
+                time.sleep(1.5)
+                st.session_state.view = "home"
+                st.rerun()
+    with col2:
+        if st.button("キャンセル", use_container_width=True):
+            st.session_state.view = "home"
+            st.rerun()
 
 # =============================
 # 画面: 新規投稿
@@ -764,24 +860,30 @@ elif st.session_state.view == "create":
 
         submitted = st.form_submit_button("静かに投稿する")
         if submitted:
-            new_post = {
-                "id": str(uuid.uuid4()),
-                "title": title if title else "名もなき感情",
-                "author": author,
-                "isAnonymous": is_anonymous,
-                "position": position,
-                "theme": theme,
-                "whatHappened": happened,
-                "howFelt": felt,
-                "reallyWanted": really_wanted,
-                "hardestMoment": hardest_moment,
-                "tags": [],
-                "createdAt": str(datetime.now().date()),
-                "device_id": st.session_state.device_id
-            }
-            if save_post(new_post):
-                st.session_state.view = "home"
-                st.rerun()
+            with st.spinner("投稿内容を確認しています..."):
+                check_result = check_post_content(happened, felt, really_wanted, hardest_moment)
+            if check_result.startswith("NG"):
+                reason = check_result.replace("NG:", "").replace("NG", "").strip()
+                st.error(f"この内容は投稿できません。{reason if reason else '不適切な表現が含まれている可能性があります。'}")
+            else:
+                new_post = {
+                    "id": str(uuid.uuid4()),
+                    "title": title if title else "名もなき感情",
+                    "author": author,
+                    "isAnonymous": is_anonymous,
+                    "position": position,
+                    "theme": theme,
+                    "whatHappened": happened,
+                    "howFelt": felt,
+                    "reallyWanted": really_wanted,
+                    "hardestMoment": hardest_moment,
+                    "tags": [],
+                    "createdAt": str(datetime.now().date()),
+                    "device_id": st.session_state.device_id
+                }
+                if save_post(new_post):
+                    st.session_state.view = "home"
+                    st.rerun()
 
     if st.button("キャンセルして戻る"):
         st.session_state.view = "home"
@@ -854,6 +956,57 @@ elif st.session_state.view == "confirm_delete":
 # =============================
 # 画面: マイページ
 # =============================
+# =============================
+# 画面: 管理者ページ（報告一覧）
+# =============================
+elif st.session_state.view == "admin_reports":
+    if not st.session_state.get("is_admin"):
+        st.session_state.view = "home"
+        st.rerun()
+
+    if st.button("← ホームへ戻る"):
+        st.session_state.view = "home"
+        st.rerun()
+
+    st.markdown('<div class="section-header">報告された投稿</div>', unsafe_allow_html=True)
+
+    reports = load_reports()
+    if not reports:
+        st.info("報告はまだありません。")
+    else:
+        st.markdown(f'<div style="font-size:13px;color:#9C7B6A;margin-bottom:12px;">報告数：{len(reports)}件</div>', unsafe_allow_html=True)
+        for r in reports:
+            post_info = r.get("posts", {}) or {}
+            title = post_info.get("title", "不明")
+            position = post_info.get("position", "")
+            theme = post_info.get("theme", "")
+            what_happened = post_info.get("what_happened", "")
+
+            st.markdown(f"""
+            <div style="background:#FFF5EE;border:1.5px solid #F0CDB0;border-left:4px solid #E8A87C;border-radius:12px;padding:16px;margin-bottom:10px;">
+                <div style="font-size:14px;font-weight:500;color:#3D2B1F;margin-bottom:4px;">{title}</div>
+                <div style="font-size:12px;color:#B07050;margin-bottom:6px;">{position} · {theme}</div>
+                <div style="font-size:13px;color:#6B5043;margin-bottom:8px;">{what_happened[:80]}...</div>
+                <div style="font-size:12px;background:#FDE8D8;color:#993C1D;padding:4px 10px;border-radius:8px;display:inline-block;">報告理由：{r.get('reason', '')}</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("投稿を削除する", key=f"admin_del_{r['id']}", type="primary", use_container_width=True):
+                    if r.get("post_id"):
+                        delete_post(r["post_id"])
+                        st.success("削除しました")
+                        st.rerun()
+            with col2:
+                if st.button("問題なし（報告を消す）", key=f"admin_ok_{r['id']}", use_container_width=True):
+                    try:
+                        supabase = get_supabase()
+                        supabase.table("reports").delete().eq("id", r["id"]).execute()
+                        st.rerun()
+                    except:
+                        pass
+
 elif st.session_state.view == "mypage":
     st.markdown('<div class="section-header">マイページ</div>', unsafe_allow_html=True)
     st.caption("この端末から投稿した記録です。")
