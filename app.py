@@ -641,9 +641,20 @@ elif st.session_state.view == "home":
         st.markdown('<div class="app-title">こころのあいだ</div>', unsafe_allow_html=True)
         st.markdown('<div class="app-caption">こころのあいだを、ことばにする。</div>', unsafe_allow_html=True)
 
+    st.markdown("""
+    <style>
+    div[data-testid="stButton"] > button[kind="primary"] {
+        background-color: #E8A87C !important;
+        color: #4A2C1A !important;
+        border: none !important;
+        font-weight: 500 !important;
+        min-height: 46px !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
     col_nav1, col_nav2 = st.columns([1, 1])
     with col_nav1:
-        st.markdown('<style>.nav-btn button { background-color: #E8A87C !important; color: #4A2C1A !important; border: none !important; font-weight: 500 !important; }</style>', unsafe_allow_html=True)
         if st.button("こころを書き出す", use_container_width=True, key="nav_create", type="primary"):
             st.session_state.view = "create"
             st.rerun()
@@ -654,27 +665,43 @@ elif st.session_state.view == "home":
 
     st.markdown('<hr class="divider">', unsafe_allow_html=True)
 
-    # --- テーマフィルター ---
-    all_themes = ["すべて", "親子関係", "子育て", "受験・進路", "学校生活", "友達関係", "習い事・スポーツ", "スマホ・ゲーム", "兄弟・姉妹関係", "将来の夢"]
-    if "selected_theme" not in st.session_state:
-        st.session_state.selected_theme = "すべて"
+    # --- テーマフィルター（複数選択・折りたたみ） ---
+    all_themes = ["親子関係", "子育て", "受験・進路", "学校生活", "友達関係", "習い事・スポーツ", "スマホ・ゲーム", "兄弟・姉妹関係", "将来の夢"]
+    if "selected_themes" not in st.session_state:
+        st.session_state.selected_themes = []
 
-    st.markdown('<div style="font-size:12px;color:#9C7B6A;margin-bottom:8px;">カテゴリで絞り込む</div>', unsafe_allow_html=True)
+    selected = st.session_state.selected_themes
+    label = "カテゴリで絞り込む" if not selected else f"絞り込み中: {' / '.join(selected)}"
 
-    cols = st.columns(5)
-    for i, theme in enumerate(all_themes):
-        with cols[i % 5]:
-            is_selected = st.session_state.selected_theme == theme
-            label = f"● {theme}" if is_selected else theme
-            if st.button(label, key=f"filter_{theme}", use_container_width=True):
-                st.session_state.selected_theme = theme
+    with st.expander(label):
+        st.caption("複数選択できます。もう一度押すと解除されます。")
+        cols = st.columns(3)
+        for i, theme in enumerate(all_themes):
+            with cols[i % 3]:
+                is_sel = theme in selected
+                btn_label = f"✓ {theme}" if is_sel else theme
+                if st.button(btn_label, key=f"filter_{theme}", use_container_width=True):
+                    if is_sel:
+                        st.session_state.selected_themes.remove(theme)
+                    else:
+                        st.session_state.selected_themes.append(theme)
+                    st.rerun()
+        if selected:
+            if st.button("すべてクリア", use_container_width=True, key="filter_clear"):
+                st.session_state.selected_themes = []
                 st.rerun()
 
-    st.markdown('<div style="margin-bottom:8px;"></div>', unsafe_allow_html=True)
+    if selected:
+        st.markdown(
+            '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">' +
+            ''.join([f'<span style="background:#E8A87C;color:#4A2C1A;font-size:11px;padding:3px 10px;border-radius:20px;font-weight:500;">{t}</span>' for t in selected]) +
+            '</div>',
+            unsafe_allow_html=True
+        )
 
     posts = load_posts()
-    if st.session_state.selected_theme != "すべて":
-        posts = [p for p in posts if p['theme'] == st.session_state.selected_theme]
+    if st.session_state.selected_themes:
+        posts = [p for p in posts if p['theme'] in st.session_state.selected_themes]
     for post in posts:
         st.markdown(render_post_card(post), unsafe_allow_html=True)
         is_mine = post.get("device_id") == st.session_state.device_id
