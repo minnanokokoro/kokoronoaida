@@ -680,7 +680,7 @@ elif st.session_state.view == "create":
             is_anonymous = st.checkbox("匿名にする")
         st.markdown('<hr class="divider">', unsafe_allow_html=True)
         position = st.selectbox("あなたの立場", ["親", "子ども"])
-        theme = st.selectbox("テーマ", ["親子関係", "子育て", "受験・進路"])
+        theme = st.selectbox("テーマ", ["親子関係", "子育て", "受験・進路", "学校生活", "友達関係", "習い事・スポーツ", "スマホ・ゲーム", "兄弟・姉妹関係", "将来の夢"])
         st.markdown('<hr class="divider">', unsafe_allow_html=True)
         happened = st.text_area("何がありましたか？（事実）", placeholder="どんなことが起きたか、できるだけ具体的に。")
         felt = st.text_area("どう感じましたか？（感情）", placeholder="そのとき、どんな気持ちになりましたか？")
@@ -733,7 +733,8 @@ elif st.session_state.view == "edit":
             is_anonymous = st.checkbox("匿名にする", value=post.get('isAnonymous', False))
         st.markdown('<hr class="divider">', unsafe_allow_html=True)
         position = st.selectbox("あなたの立場", ["親", "子ども"], index=["親", "子ども"].index(post['position']))
-        theme = st.selectbox("テーマ", ["親子関係", "子育て", "受験・進路"], index=["親子関係", "子育て", "受験・進路"].index(post['theme']))
+        themes = ["親子関係", "子育て", "受験・進路", "学校生活", "友達関係", "習い事・スポーツ", "スマホ・ゲーム", "兄弟・姉妹関係", "将来の夢"]
+        theme = st.selectbox("テーマ", themes, index=themes.index(post['theme']) if post['theme'] in themes else 0)
         st.markdown('<hr class="divider">', unsafe_allow_html=True)
         happened = st.text_area("何がありましたか？（事実）", value=post['whatHappened'])
         felt = st.text_area("どう感じましたか？（感情）", value=post['howFelt'])
