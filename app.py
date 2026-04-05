@@ -353,11 +353,29 @@ def render_post_card(post):
     tags_html = ''.join([f'<span class="tag-pill">#{t}</span>' for t in post.get('tags', [])])
     anon_badge = '<span class="badge-anon">匿名</span>' if post.get('isAnonymous') else ''
     author_text = f'<span style="font-size:12px;color:#9C7B6A;margin-left:4px;">{post.get("author","")}</span>' if post.get("author") and not post.get("isAnonymous") else ''
-    position_badge = f'<span class="badge-position">{post["position"]}</span>'
     preview = post['whatHappened'][:45] + '...' if len(post['whatHappened']) > 45 else post['whatHappened']
+
+    if post["position"] == "親":
+        card_bg = "#FDF0EB"
+        card_border = "#E8A882"
+        card_left = "#C4622A"
+        badge_bg = "#F5C8B0"
+        badge_color = "#7A3010"
+    else:
+        card_bg = "#FFFDF8"
+        card_border = "#F0D0A0"
+        card_left = "#E8A840"
+        badge_bg = "#FDE8C0"
+        badge_color = "#8A5800"
+
+    position_badge = f'<span style="background:{badge_bg};color:{badge_color};font-size:11px;padding:3px 12px;border-radius:20px;font-weight:500;white-space:nowrap;">{post["position"]}</span>'
+
     return f"""
-    <div class="post-card">
-        <div style="font-family:'Noto Serif JP',Georgia,serif;font-size:15px;font-weight:500;color:#3D2B1F;margin-bottom:6px;">{post['title']}{anon_badge}{author_text}{position_badge}</div>
+    <div style="background:{card_bg};border:1.5px solid {card_border};border-left:4px solid {card_left};border-radius:14px;padding:18px;margin-bottom:14px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
+            <div style="font-family:'Noto Serif JP',Georgia,serif;font-size:15px;font-weight:500;color:#3D2B1F;">{post['title']}{anon_badge}{author_text}</div>
+            {position_badge}
+        </div>
         <div style="font-size:12px;color:#B07050;margin-bottom:8px;">{post['theme']} &nbsp;·&nbsp; {post['createdAt']}</div>
         <div style="font-size:13px;color:#6B5043;line-height:1.7;margin-bottom:10px;">{preview}</div>
         {f'<div style="margin-bottom:10px;">{tags_html}</div>' if tags_html else ''}
@@ -628,7 +646,31 @@ elif st.session_state.view == "home":
 
     st.markdown('<hr class="divider">', unsafe_allow_html=True)
 
+    # --- テーマフィルター ---
+    all_themes = ["すべて", "親子関係", "子育て", "受験・進路", "学校生活", "友達関係", "習い事・スポーツ", "スマホ・ゲーム", "兄弟・姉妹関係", "将来の夢"]
+    if "selected_theme" not in st.session_state:
+        st.session_state.selected_theme = "すべて"
+
+    filter_html = '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;">'
+    for theme in all_themes:
+        is_selected = st.session_state.selected_theme == theme
+        bg = "#E8A87C" if is_selected else "#FFFDF8"
+        color = "#4A2C1A" if is_selected else "#9C7B6A"
+        border = "none" if is_selected else "1px solid #E8D8C4"
+        filter_html += f'<span style="background:{bg};color:{color};border:{border};font-size:12px;padding:6px 14px;border-radius:20px;cursor:pointer;">{theme}</span>'
+    filter_html += '</div>'
+    st.markdown(filter_html, unsafe_allow_html=True)
+
+    cols = st.columns(len(all_themes))
+    for i, theme in enumerate(all_themes):
+        with cols[i]:
+            if st.button(theme, key=f"filter_{theme}", use_container_width=True):
+                st.session_state.selected_theme = theme
+                st.rerun()
+
     posts = load_posts()
+    if st.session_state.selected_theme != "すべて":
+        posts = [p for p in posts if p['theme'] == st.session_state.selected_theme]
     for post in posts:
         st.markdown(render_post_card(post), unsafe_allow_html=True)
         is_mine = post.get("device_id") == st.session_state.device_id
@@ -673,7 +715,7 @@ elif st.session_state.view == "create":
         st.markdown('<hr class="divider">', unsafe_allow_html=True)
         col_name, col_anon = st.columns([3, 1])
         with col_name:
-            author = st.text_input("お名前（任意）", placeholder="例：Sachi")
+            author = st.text_input("お名前（任意）", placeholder="例：Kokoro")
         with col_anon:
             st.write("")
             st.write("")
