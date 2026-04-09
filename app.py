@@ -502,6 +502,15 @@ if "view" not in st.session_state:
 if st.session_state.view == "about":
     st.markdown('<div class="section-header">はじめに・このアプリについて</div>', unsafe_allow_html=True)
     st.markdown("""
+    <div class="concept-card" style="border-left:4px solid #E8A87C;">
+        <div class="concept-title">このアプリで書いてほしいこと</div>
+        <div class="concept-body">
+            このアプリは、<strong style="color:#3D2B1F;">親と子ども、お互いの目線から見られる悩み</strong>を書く場所です。<br><br>
+            たとえば「子どもと進路について話し合えない」「親に気持ちをわかってもらえない」など、<strong style="color:#3D2B1F;">親子のすれ違いやコミュニケーションの悩み</strong>を共有してください。<br><br>
+            お金の問題・仕事の悩みなど、子どもの視点からは理解しにくい内容はこのアプリには向いていません。<br>
+            「親ならどう感じるか」「子どもならどう思うか」——<strong style="color:#3D2B1F;">お互いの立場から想像できる悩み</strong>を書いてみてください。
+        </div>
+    </div>
     <div class="concept-card">
         <div class="concept-title">このアプリが生まれた理由</div>
         <div class="concept-body">
@@ -807,6 +816,16 @@ elif st.session_state.view == "report":
 # =============================
 elif st.session_state.view == "create":
     st.markdown('<div class="section-header">こころを書き出す</div>', unsafe_allow_html=True)
+    st.markdown("""
+    <div style="background:#FFF5EE;border:1.5px solid #F0CDB0;border-left:4px solid #E8A87C;border-radius:12px;padding:14px 16px;margin-bottom:16px;">
+        <div style="font-size:13px;font-weight:500;color:#3D2B1F;margin-bottom:6px;">書く前にご確認ください</div>
+        <div style="font-size:13px;color:#6B5043;line-height:1.8;">
+            このアプリは<strong style="color:#3D2B1F;">親子のすれ違いやコミュニケーションの悩み</strong>を共有する場所です。<br>
+            親・子ども、<strong style="color:#3D2B1F;">お互いの立場から想像できる悩み</strong>を書いてください。<br>
+            <span style="color:#B07050;font-size:12px;">※ お金・仕事など、子どもの視点から理解しにくい内容はご遠慮ください。</span>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
     st.caption("思いつくままに、ゆっくり書いてみてください。")
 
     with st.form("post_form"):
